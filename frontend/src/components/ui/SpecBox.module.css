@@ -1,0 +1,14 @@
+.box {
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+  overflow: hidden;
+}
+.accent {
+  border-color: rgba(127,219,255,0.32);
+  box-shadow: var(--shadow-md), 0 0 0 1px rgba(127,219,255,0.10), 0 0 28px rgba(127,219,255,0.08);
+}
+.accent::before, .accent::after { opacity: 0.8; }
+.body { padding: 24px; }
+
+@media (max-width: 640px) {
+  .body { padding: 18px; }
+}

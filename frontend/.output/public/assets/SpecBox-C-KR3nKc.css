@@ -1,0 +1,1 @@
+.fmtnNa_box{transition:border-color var(--transition), box-shadow var(--transition), transform var(--transition);overflow:hidden}.fmtnNa_accent{box-shadow:var(--shadow-md), 0 0 0 1px #7fdbff1a, 0 0 28px #7fdbff14;border-color:#7fdbff52}.fmtnNa_accent:before,.fmtnNa_accent:after{opacity:.8}.fmtnNa_body{padding:24px}@media (width<=640px){.fmtnNa_body{padding:18px}}

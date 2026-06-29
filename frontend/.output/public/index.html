@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lore — Your codebase remembers. Finally.</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:        #fdf8f8;
+      --surface:   #ffffff;
+      --s-low:     #f7f3f2;
+      --s-mid:     #f1edec;
+      --s-high:    #ebe7e6;
+      --s-highest: #e5e2e1;
+      --on-bg:     #1c1b1b;
+      --on-var:    #444748;
+      --outline:   #747878;
+      --out-var:   #c4c7c7;
+      --primary:   #000000;
+      --secondary: #5e5e5e;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--on-bg); font-family: 'Inter', sans-serif; overflow-x: hidden; }
+
+    /* TYPOGRAPHY */
+    .t-display  { font-family: 'Instrument Serif', serif; font-size: clamp(40px, 6vw, 64px); line-height: 1.08; letter-spacing: -0.02em; font-weight: 400; }
+    .t-headline { font-family: 'Instrument Serif', serif; font-size: 32px; line-height: 1.2; font-weight: 400; }
+    .t-head-md  { font-family: 'Instrument Serif', serif; font-size: 24px; line-height: 1.3; font-weight: 400; }
+    .t-body-lg  { font-family: 'Inter', sans-serif; font-size: 18px; line-height: 1.6; }
+    .t-body     { font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.5; }
+    .t-body-sm  { font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.5; }
+    .t-label    { font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1; letter-spacing: 0.05em; font-weight: 600; text-transform: uppercase; }
+    .t-mono     { font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.4; }
+    .t-mono-sm  { font-family: 'IBM Plex Mono', monospace; font-size: 11px; line-height: 1.4; letter-spacing: 0.02em; }
+
+    /* LAYOUT */
+    .container { max-width: 1160px; margin: 0 auto; padding: 0 32px; }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: 60px;
+      background: rgba(253,248,248,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--out-var);
+      display: flex; align-items: center;
+    }
+    .nav-inner {
+      width: 100%; max-width: 1160px; margin: 0 auto; padding: 0 32px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      font-family: 'Instrument Serif', serif;
+      font-size: 20px; letter-spacing: -0.5px; color: var(--primary);
+    }
+    .nav-logo sup { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--outline); vertical-align: super; margin-left: 2px; }
+    .nav-links { display: flex; gap: 32px; list-style: none; align-items: center; }
+    .nav-links a { color: var(--on-var); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.15s; }
+    .nav-links a:hover { color: var(--primary); }
+    .nav-btn {
+      background: var(--primary); color: #fff; border: none;
+      padding: 8px 20px; font-family: 'Inter', sans-serif;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.15s; text-decoration: none; display: inline-block;
+    }
+    .nav-btn:hover { opacity: 0.8; }
+
+    /* HERO */
+    .hero {
+      padding: 120px 0 80px;
+      border-bottom: 1px solid var(--out-var);
+    }
+    .hero-inner {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 80px; align-items: center;
+    }
+    .hero-eyebrow {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 28px;
+    }
+    .hero-dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; }
+    .hero-h1 { margin-bottom: 24px; }
+    .hero-h1 em { font-style: italic; }
+    .hero-body {
+      color: var(--on-var); max-width: 440px;
+      margin-bottom: 40px; font-size: 16px; line-height: 1.7;
+    }
+    .hero-actions { display: flex; gap: 12px; align-items: center; }
+    .btn-primary {
+      background: var(--primary); color: #fff;
+      padding: 12px 28px; font-size: 14px; font-weight: 600;
+      border: 1px solid var(--primary); cursor: pointer;
+      text-decoration: none; display: inline-block; transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.8; }
+    .btn-secondary {
+      background: transparent; color: var(--on-bg);
+      padding: 12px 28px; font-size: 14px; font-weight: 500;
+      border: 1px solid var(--out-var); cursor: pointer;
+      text-decoration: none; display: inline-block; transition: border-color 0.15s;
+    }
+    .btn-secondary:hover { border-color: var(--outline); }
+
+    /* CASE FILE CARD */
+    .case-card {
+      background: var(--surface);
+      border: 1px solid var(--out-var);
+      position: relative;
+    }
+    .case-card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--out-var);
+      background: var(--s-low);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .case-status {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .case-status-dot {
+      width: 6px; height: 6px; background: #2d9c4e; border-radius: 50%;
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .case-card-body { padding: 20px; }
+    .case-query {
+      border-left: 2px solid var(--primary);
+      padding: 10px 14px;
+      background: var(--s-low);
+      margin-bottom: 16px;
+    }
+    .case-answer { font-size: 13px; color: var(--on-var); line-height: 1.7; margin-bottom: 16px; }
+    .case-answer strong { color: var(--on-bg); font-weight: 500; }
+    .case-divider { height: 1px; background: var(--out-var); margin-bottom: 14px; }
+    .evidence-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .etag {
+      font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+      color: var(--on-var); background: var(--s-high);
+      border: 1px solid var(--out-var); padding: 3px 8px;
+    }
+    .cursor {
+      display: inline-block; width: 2px; height: 12px;
+      background: var(--primary); animation: blink 1s step-end infinite;
+      vertical-align: text-bottom; margin-left: 1px;
+    }
+
+    /* DIVIDER */
+    .section-divider { border: none; border-top: 1px solid var(--out-var); }
+
+    /* STATS ROW */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      border-bottom: 1px solid var(--out-var);
+    }
+    .stat-cell {
+      padding: 32px;
+      border-right: 1px solid var(--out-var);
+    }
+    .stat-cell:last-child { border-right: none; }
+    .stat-value {
+      font-family: 'Instrument Serif', serif;
+      font-size: 40px; line-height: 1; color: var(--primary);
+      margin-bottom: 6px;
+    }
+    .stat-label { font-size: 13px; color: var(--on-var); }
+
+    /* HOW IT WORKS */
+    .section { padding: 80px 0; border-bottom: 1px solid var(--out-var); }
+    .section-header { margin-bottom: 56px; }
+    .steps-grid { display: grid; grid-template-columns: repeat(3,1fr); border: 1px solid var(--out-var); }
+    .step {
+      padding: 36px 28px;
+      border-right: 1px solid var(--out-var);
+      transition: background 0.15s;
+    }
+    .step:last-child { border-right: none; }
+    .step:hover { background: var(--s-low); }
+    .step-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; color: var(--outline); letter-spacing: 2px;
+      text-transform: uppercase; margin-bottom: 20px;
+    }
+    .step-title {
+      font-family: 'Instrument Serif', serif;
+      font-size: 22px; margin-bottom: 12px; color: var(--on-bg);
+    }
+    .step-body { font-size: 14px; color: var(--on-var); line-height: 1.65; margin-bottom: 20px; }
+    .step-code {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px; color: var(--on-var);
+      background: var(--s-high); border: 1px solid var(--out-var);
+      padding: 8px 12px; display: block;
+      border-left: 2px solid var(--primary);
+    }
+
+    /* MEMORY OPS */
+    .ops-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--out-var); }
+    .op {
+      padding: 28px 24px;
+      border-right: 1px solid var(--out-var);
+      border-bottom: 1px solid var(--out-var);
+      transition: background 0.15s;
+    }
+    .op:nth-child(2n) { border-right: none; }
+    .op:nth-child(3), .op:nth-child(4) { border-bottom: none; }
+    .op:hover { background: var(--s-low); }
+    .op-fn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 15px; font-weight: 500; margin-bottom: 10px;
+    }
+    .fn-remember { color: #2d7a3a; }
+    .fn-recall    { color: #1a5fa8; }
+    .fn-improve   { color: #7a5c1a; }
+    .fn-forget    { color: #9c1a22; }
+    .op-desc { font-size: 13px; color: var(--on-var); line-height: 1.6; }
+
+    /* CTA */
+    .cta-section { padding: 96px 0; text-align: center; }
+    .cta-title { margin-bottom: 12px; }
+    .cta-sub { color: var(--on-var); margin-bottom: 40px; max-width: 400px; margin-left: auto; margin-right: auto; }
+    .repo-wrap {
+      display: flex; max-width: 520px; margin: 0 auto;
+      border: 1px solid var(--out-var); transition: border-color 0.2s;
+    }
+    .repo-wrap:focus-within { border-color: var(--primary); }
+    .repo-input {
+      flex: 1; background: var(--surface); border: none; outline: none;
+      padding: 14px 16px; font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px; color: var(--on-bg);
+    }
+    .repo-input::placeholder { color: var(--outline); }
+    .repo-btn {
+      background: var(--primary); border: none; color: #fff;
+      padding: 14px 24px; font-family: 'Inter', sans-serif;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.15s; white-space: nowrap;
+    }
+    .repo-btn:hover { opacity: 0.8; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--out-var);
+      padding: 24px 32px;
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--s-low);
+    }
+    .footer-logo { font-family: 'Instrument Serif', serif; font-size: 16px; color: var(--on-var); }
+    .footer-meta { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--outline); }
+
+    /* ARCHIVE STAMP */
+    .archive-stamp {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid var(--out-var); padding: 5px 12px;
+      background: var(--s-low);
+    }
+
+    @media (max-width: 900px) {
+      .hero-inner { grid-template-columns: 1fr; }
+      .case-card { display: none; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .stat-cell:nth-child(2) { border-right: none; }
+      .stat-cell:nth-child(3) { border-right: 1px solid var(--out-var); }
+      .steps-grid { grid-template-columns: 1fr; }
+      .step { border-right: none; border-bottom: 1px solid var(--out-var); }
+      .step:last-child { border-bottom: none; }
+      .ops-grid { grid-template-columns: 1fr; }
+      .op { border-right: none; border-bottom: 1px solid var(--out-var); }
+      .op:last-child { border-bottom: none; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">Lore<sup>v0.1</sup></div>
+    <ul class="nav-links">
+      <li><a href="#how">Process</a></li>
+      <li><a href="#memory">Memory API</a></li>
+      <li><a href="#docs">Docs</a></li>
+    </ul>
+    <a href="#analyze" class="nav-btn">Open Case →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-inner">
+      <div>
+        <div class="hero-eyebrow">
+          <div class="hero-dot"></div>
+          <span class="t-mono-sm" style="color:var(--outline)">MEMORY ACTIVE · COGNEE GRAPH ONLINE</span>
+        </div>
+        <h1 class="t-display hero-h1">
+          Your codebase<br/><em>remembers.</em><br/>Finally.
+        </h1>
+        <p class="hero-body">
+          Every commit hides a decision. Every PR buries a reason.
+          Lore ingests your entire repository history into a persistent
+          knowledge graph — so you can interrogate the past, any time, forever.
+        </p>
+        <div class="hero-actions">
+          <a href="#analyze" class="btn-primary">Open a Case →</a>
+          <a href="#how" class="btn-secondary">How it works</a>
+        </div>
+      </div>
+
+      <!-- CASE FILE CARD -->
+      <div class="case-card">
+        <div class="case-card-header">
+          <div>
+            <span class="t-label" style="color:var(--outline)">Case File</span>
+            <span class="t-mono" style="color:var(--outline); margin-left:8px">#0042</span>
+          </div>
+          <div class="case-status">
+            <div class="case-status-dot"></div>
+            <span class="t-mono-sm" style="color:#2d9c4e">memory active</span>
+          </div>
+        </div>
+        <div class="case-card-body">
+          <div style="margin-bottom:8px">
+            <span class="t-label" style="color:var(--outline)">Repository</span>
+            <span class="t-mono" style="margin-left:8px">vercel/next.js</span>
+          </div>
+          <div class="case-query">
+            <div class="t-label" style="color:var(--outline); margin-bottom:6px">Query</div>
+            <p class="t-body-sm" style="font-style:italic; color:var(--on-bg)">
+              "Why did we switch from Webpack to Turbopack in 2023?"
+            </p>
+          </div>
+          <p class="case-answer">
+            The migration was triggered by <strong>build time complaints</strong>
+            across 47 open issues. Benchmarks in <strong>PR #51203</strong> confirmed
+            <strong>10x faster cold starts</strong> on large monorepos. The final
+            decision was authored by <strong>@timneutkens</strong> in an RFC filed
+            Sept 14, 2023 — cross-referencing 3 earlier failed attempts.
+            <span class="cursor"></span>
+          </p>
+          <div class="case-divider"></div>
+          <div class="t-label" style="color:var(--outline); margin-bottom:8px">Evidence</div>
+          <div class="evidence-row">
+            <span class="etag">issue #42847</span>
+            <span class="etag">PR #51203</span>
+            <span class="etag">commit a3f9b2c</span>
+            <span class="etag">RFC Sept 2023</span>
+            <span class="etag">@timneutkens</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-cell">
+    <div class="stat-value">∞</div>
+    <div class="stat-label">Sessions remembered</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-value">4</div>
+    <div class="stat-label">Memory lifecycle ops</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-value">Any</div>
+    <div class="stat-label">Public GitHub repo</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-value">0</div>
+    <div class="stat-label">Context ever forgotten</div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="how">
+  <div class="container">
+    <div class="section-header">
+      <div class="t-label" style="color:var(--outline); margin-bottom:12px">— The Process</div>
+      <h2 class="t-headline">Three steps. Total recall.</h2>
+    </div>
+    <div class="steps-grid">
+      <div class="step">
+        <div class="step-num">Step 01</div>
+        <div class="step-title">Point Lore at your repo</div>
+        <p class="step-body">Paste any public GitHub URL. Lore pulls every commit, PR, issue, and comment — the full institutional history of your codebase, ingested in minutes.</p>
+        <code class="step-code">await cognee.remember(repo_url)</code>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 02</div>
+        <div class="step-title">Cognee builds the graph</div>
+        <p class="step-body">History is structured into a hybrid graph-vector knowledge graph. Relationships between decisions, contributors, and code are permanently mapped and linked.</p>
+        <code class="step-code">graph + vector → knowledge</code>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 03</div>
+        <div class="step-title">Interrogate. Forever.</div>
+        <p class="step-body">Ask anything about your codebase's past. Lore recalls across infinite sessions — memory persists, context never dies, and every answer cites its sources.</p>
+        <code class="step-code">await cognee.recall(question)</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MEMORY OPS -->
+<section class="section" id="memory">
+  <div class="container">
+    <div class="section-header">
+      <div class="t-label" style="color:var(--outline); margin-bottom:12px">— Memory Lifecycle</div>
+      <h2 class="t-headline">Four operations.<br/>Nothing forgotten.</h2>
+    </div>
+    <div class="ops-grid" style="max-width:680px">
+      <div class="op">
+        <div class="op-fn fn-remember">remember()</div>
+        <p class="op-desc">Ingest commits, PRs, and issues into the knowledge graph. Every piece of history, permanently structured and linked.</p>
+      </div>
+      <div class="op">
+        <div class="op-fn fn-recall">recall()</div>
+        <p class="op-desc">Ask anything. Cognee routes between semantic search and deep graph traversals to surface the right answer with full source citations.</p>
+      </div>
+      <div class="op">
+        <div class="op-fn fn-improve">improve()</div>
+        <p class="op-desc">Enrich memory after new commits. Prune stale nodes. The graph gets smarter every time your codebase evolves.</p>
+      </div>
+      <div class="op">
+        <div class="op-fn fn-forget">forget()</div>
+        <p class="op-desc">Surgically remove deprecated branches or outdated context. Lore only carries what matters.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="analyze">
+  <div class="container">
+    <div class="archive-stamp" style="margin: 0 auto 32px; width:fit-content">
+      <div class="hero-dot"></div>
+      <span class="t-mono-sm" style="color:var(--outline)">OPEN A CASE · FREE · NO SETUP</span>
+    </div>
+    <h2 class="t-display cta-title">
+      What does your<br/><em>codebase know?</em>
+    </h2>
+    <p class="t-body cta-sub">
+      Paste a GitHub URL. Lore handles the rest.
+    </p>
+    <div class="repo-wrap">
+      <input class="repo-input" type="text" placeholder="https://github.com/owner/repository"/>
+      <button class="repo-btn">Open Case →</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Lore</div>
+  <div class="footer-meta">// memory powered by cognee · wemakedevs hackathon 2026</div>
+</footer>
+
+</body>
+</html>
