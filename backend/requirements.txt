@@ -12,6 +12,7 @@ python-dotenv>=1.0.1
 
 # --- Knowledge graph / memory --------------------------------------------
 cognee==1.2.2
+groq>=0.8.0
 
 # --- Local vector embeddings (graph_mode=False fast path) ---------------
 fastembed>=0.3.0
