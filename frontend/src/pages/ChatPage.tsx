@@ -27,7 +27,7 @@ export default function ChatPage() {
     api.chat.stats(repoId).then(setStats).catch(() => {})
     setMessages([{
       id: 'welcome', role: 'lore',
-      content: `Case opened. Knowledge graph loaded for \`${repoId}\`. Ask me anything about this codebase's history, decisions, or contributors.`,
+      content: `Case opened. Fast Local Mode active for \`${repoId}\`. Ask me anything about this codebase's history, decisions, or contributors.`,
       timestamp: new Date(),
     }])
   }, [repoId])
@@ -115,9 +115,12 @@ export default function ChatPage() {
                   <div className={styles.loreMsg}>
                     <div className={styles.loreMsgMeta}>
                       <span className={styles.loreBadge}>LORE</span>
+                      <span className="t-mono-xs" style={{ color: 'var(--accent)', marginLeft: '8px' }}>
+                        Fast Local Mode
+                      </span>
                       {msg.sources && (
-                        <span className="t-mono-xs" style={{ color: 'var(--ink-ghost)' }}>
-                          cognee.recall() · {msg.sources.length} sources
+                        <span className="t-mono-xs" style={{ color: 'var(--ink-ghost)', marginLeft: '12px' }}>
+                          Local Vector Search · {msg.sources.length} sources
                         </span>
                       )}
                     </div>
@@ -152,11 +155,12 @@ export default function ChatPage() {
               <div className={styles.loreMsg}>
                 <div className={styles.loreMsgMeta}>
                   <span className={styles.loreBadge}>LORE</span>
-                  <span className="t-mono-xs" style={{ color: 'var(--ink-ghost)' }}>traversing graph...</span>
+                  <span className="t-mono-xs" style={{ color: 'var(--accent)', marginLeft: '8px' }}>Fast Local Mode</span>
+                  <span className="t-mono-xs" style={{ color: 'var(--ink-ghost)' }}>searching vector store...</span>
                 </div>
                 <div className={`bp-card ${styles.loreMsgBody}`}>
                   <div className={styles.loreMsgText} style={{ color: 'var(--ink-ghost)', fontStyle: 'italic' }}>
-                    Searching knowledge graph
+                    Searching knowledge base
                     <span className={styles.dots}><span/><span/><span/></span>
                   </div>
                 </div>
@@ -179,7 +183,7 @@ export default function ChatPage() {
               <button className={styles.sendBtn} onClick={() => send()} disabled={loading}>→</button>
             </div>
             <div className="t-mono-xs" style={{ color: 'var(--ink-ghost)', marginTop: 8 }}>
-              ↵ Enter to send · Shift+↵ new line · Memory persists across sessions
+              ↵ Enter to send · Shift+↵ new line · Fast Local Mode active
             </div>
           </div>
         </div>
