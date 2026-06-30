@@ -55,7 +55,7 @@ async def run_ingestion(rid: str, req: IngestRequest):
         # Fast Mode: embed + store locally, zero LLM calls, instant, reliable.
         # Full Graph Mode: route through real Cognee add()+cognify() pipeline.
         if req.graph_mode:
-            stored = await cognee_service.remember_chunks(file_chunks, dataset=rid, graph_mode=True)
+            stored = await cognee_service.remember_chunks(file_chunks, dataset=rid, graph_mode=req.graph_mode)
         else:
             stored = await local_memory.store_chunks(file_chunks, dataset=rid)
         jobs[rid].docs_stored = stored
@@ -65,14 +65,14 @@ async def run_ingestion(rid: str, req: IngestRequest):
         metadata_text = processor.format_metadata(commits, prs, issues)
         if metadata_text.strip():
             if req.graph_mode:
-                await cognee_service.remember(metadata_text, dataset=rid, graph_mode=True)
+                await cognee_service.remember(metadata_text, dataset=rid, graph_mode=req.graph_mode)
             else:
                 await local_memory.store_chunks([metadata_text], dataset=rid)
             logger.info(f"[INGEST] Metadata blob ingested")
 
         # ── 6. Improve graph (Full Graph Mode only) ─────────────────────────
         if req.graph_mode:
-            await cognee_service.improve(dataset=rid, graph_mode=True)
+            await cognee_service.improve(dataset=rid, graph_mode=req.graph_mode)
 
         # ── 7. Mark complete ───────────────────────────────────────────────
         total_nodes = (
