@@ -6,10 +6,11 @@ import type { Message, MemoryStats, Source } from '../types'
 import styles from './ChatPage.module.css'
 
 const SUGGESTIONS = [
-  'Why was this architectural decision made?',
-  'Who contributed the most impactful PRs?',
-  'What bugs were hardest to fix and why?',
-  'How has the codebase evolved over time?',
+  'How many commits are there?',
+  'What files were changed the most?',
+  'Why was the auth flow changed?',
+  'Summarize recent PRs',
+  'How has the codebase evolved?',
 ]
 
 export default function ChatPage() {
@@ -27,39 +28,56 @@ export default function ChatPage() {
     api.chat.stats(repoId).then(setStats).catch(() => {})
     setMessages([{
       id: 'welcome', role: 'lore',
-      content: `Case opened. Fast Local Mode active for \`${repoId}\`. Ask me anything about this codebase's history, decisions, or contributors.`,
+      content: `Case opened. **Fast Local Vector Mode** active for \`${repoId}\`.\n\nI search files, commits, and metadata using local vector embeddings. Ask me anything about code history, structure, or changes.`,
       timestamp: new Date(),
     }])
   }, [repoId])
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+  useEffect(() => { 
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) 
+  }, [messages])
 
   const send = async (text?: string) => {
     const q = (text || input).trim()
     if (!q || loading || !repoId) return
+
     setInput('')
-    setMessages(p => [...p, { id: Date.now().toString(), role: 'user', content: q, timestamp: new Date() }])
+    setMessages(p => [...p, { 
+      id: Date.now().toString(), 
+      role: 'user', 
+      content: q, 
+      timestamp: new Date() 
+    }])
     setLoading(true)
     setQueryCount(c => c + 1)
 
     try {
       const res = await api.chat.query({ repo_id: repoId, question: q })
       setMessages(p => [...p, {
-        id: (Date.now()+1).toString(), role: 'lore',
-        content: res.answer, sources: res.sources, timestamp: new Date(),
-      }])
-      if (res.sources?.length) setSources(res.sources)
-    } catch {
-      setMessages(p => [...p, {
-        id: (Date.now()+1).toString(), role: 'lore',
-        content: 'Failed to query memory. Ensure the backend is running.',
+        id: (Date.now()+1).toString(), 
+        role: 'lore',
+        content: res.answer, 
+        sources: res.sources || [], 
         timestamp: new Date(),
       }])
-    } finally { setLoading(false) }
+      if (res.sources?.length) setSources(res.sources)
+    } catch (err) {
+      setMessages(p => [...p, {
+        id: (Date.now()+1).toString(), 
+        role: 'lore',
+        content: 'Sorry, I couldn\'t find relevant information in the repository.',
+        timestamp: new Date(),
+      }])
+    } finally { 
+      setLoading(false) 
+    }
   }
 
   const handleKey = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
+    if (e.key === 'Enter' && !e.shiftKey) { 
+      e.preventDefault(); 
+      send() 
+    }
   }
 
   return (
@@ -79,13 +97,13 @@ export default function ChatPage() {
 
           {stats && (
             <div className={styles.sideSection}>
-              <div className="t-label" style={{ marginBottom: 12 }}>Case Memory</div>
+              <div className="t-label" style={{ marginBottom: 12 }}>Case Structure</div>
               {[
                 ['Commits', stats.commits],
                 ['Pull Requests', stats.prs],
                 ['Issues', stats.issues],
-                ['Graph Nodes', stats.total_nodes],
-                ['Queries', queryCount],
+                ['Files', stats.files ?? 0],
+                ['Chunks', stats.chunks ?? 0],
               ].map(([k,v]) => (
                 <div key={k as string} className={styles.statRow}>
                   <span className={styles.statKey}>{k}</span>
@@ -97,12 +115,12 @@ export default function ChatPage() {
 
           <div className={styles.sideSection}>
             <Link to={`/memory/${repoId}`} className="btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>
-              View Memory Graph →
+              View Structure Graph →
             </Link>
           </div>
         </aside>
 
-        {/* CHAT */}
+        {/* CHAT AREA */}
         <div className={styles.chatArea}>
           <div className={styles.messages}>
             {messages.map(msg => (
@@ -116,23 +134,17 @@ export default function ChatPage() {
                     <div className={styles.loreMsgMeta}>
                       <span className={styles.loreBadge}>LORE</span>
                       <span className="t-mono-xs" style={{ color: 'var(--accent)', marginLeft: '8px' }}>
-                        Fast Local Mode
+                        Fast Local Vector Mode
                       </span>
-                      {msg.sources && (
+                      {msg.sources && msg.sources.length > 0 && (
                         <span className="t-mono-xs" style={{ color: 'var(--ink-ghost)', marginLeft: '12px' }}>
-                          Local Vector Search · {msg.sources.length} sources
+                          Vector Search • {msg.sources.length} sources
                         </span>
                       )}
                     </div>
                     <div className={`bp-card ${styles.loreMsgBody}`}>
                       <div className={styles.loreMsgText}>
-                        {msg.content.split('`').map((part, i) =>
-                          i % 2 === 1
-                            ? <code key={i} className={styles.inlineCode}>{part}</code>
-                            : part.split('**').map((p2, j) =>
-                                j % 2 === 1 ? <strong key={j}>{p2}</strong> : p2
-                              )
-                        )}
+                        {msg.content}
                       </div>
                       {msg.sources && msg.sources.length > 0 && (
                         <div className={styles.evidenceRow}>
@@ -155,13 +167,11 @@ export default function ChatPage() {
               <div className={styles.loreMsg}>
                 <div className={styles.loreMsgMeta}>
                   <span className={styles.loreBadge}>LORE</span>
-                  <span className="t-mono-xs" style={{ color: 'var(--accent)', marginLeft: '8px' }}>Fast Local Mode</span>
-                  <span className="t-mono-xs" style={{ color: 'var(--ink-ghost)' }}>searching vector store...</span>
+                  <span className="t-mono-xs" style={{ color: 'var(--accent)', marginLeft: '8px' }}>Fast Local Vector Mode</span>
                 </div>
                 <div className={`bp-card ${styles.loreMsgBody}`}>
                   <div className={styles.loreMsgText} style={{ color: 'var(--ink-ghost)', fontStyle: 'italic' }}>
-                    Searching knowledge base
-                    <span className={styles.dots}><span/><span/><span/></span>
+                    Searching local vector store...
                   </div>
                 </div>
               </div>
@@ -169,7 +179,7 @@ export default function ChatPage() {
             <div ref={bottomRef} />
           </div>
 
-          {/* INPUT */}
+          {/* INPUT BAR */}
           <div className={styles.inputArea}>
             <div className={styles.inputWrap}>
               <textarea
@@ -178,12 +188,13 @@ export default function ChatPage() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKey}
-                placeholder="Ask anything about this codebase's history..."
+                placeholder="Ask anything about this repository's history..."
+                disabled={loading}
               />
-              <button className={styles.sendBtn} onClick={() => send()} disabled={loading}>→</button>
+              <button className={styles.sendBtn} onClick={() => send()} disabled={loading || !input.trim()}>→</button>
             </div>
             <div className="t-mono-xs" style={{ color: 'var(--ink-ghost)', marginTop: 8 }}>
-              ↵ Enter to send · Shift+↵ new line · Fast Local Mode active
+              Fast Local Vector Mode • Reliable • No graph extraction
             </div>
           </div>
         </div>
@@ -196,13 +207,13 @@ export default function ChatPage() {
           <div className={styles.evidenceItems}>
             {activeSources.length === 0 ? (
               <div className={styles.evidenceEmpty}>
-                Sources appear here after your first query.
+                Relevant chunks will appear here after you ask a question.
               </div>
             ) : activeSources.map(s => (
               <div key={s.id} className={styles.evidenceItem}>
-                <div className="t-mono-xs" style={{ color: 'var(--accent)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.type}</div>
-                <div className="t-mono-sm" style={{ color: 'var(--ink)', marginBottom: 4 }}>{s.id}</div>
-                <div className="t-body-sm" style={{ color: 'var(--ink-dim)' }}>{s.text}</div>
+                <div className="t-mono-xs" style={{ color: 'var(--accent)' }}>{s.type}</div>
+                <div className="t-mono-sm" style={{ color: 'var(--ink)' }}>{s.id}</div>
+                <div className="t-body-sm" style={{ color: 'var(--ink-dim)', marginTop: 8 }}>{s.text}</div>
               </div>
             ))}
           </div>
