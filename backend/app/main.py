@@ -10,9 +10,9 @@ logging.basicConfig(
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from routers import ingest, chat
-from services import cognee_service
-from core.config import settings
+from app.api.routes import ingest, chat
+from app.services import cognee_service
+from app.core.config import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

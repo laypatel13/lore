@@ -8,7 +8,7 @@ Same pattern as Clutch's insights_service.py weekly-summary call.
 """
 import logging
 import httpx
-from core.config import settings
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 

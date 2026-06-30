@@ -22,7 +22,9 @@ from fastembed import TextEmbedding
 
 logger = logging.getLogger(__name__)
 
-STORE_DIR = Path(os.environ.get("LOCAL_MEMORY_DIR", "./local_memory_store"))
+# backend/app/services/local_memory.py -> parents: services, app, backend
+_BACKEND_ROOT = Path(__file__).resolve().parents[2]
+STORE_DIR = Path(os.environ.get("LOCAL_MEMORY_DIR", str(_BACKEND_ROOT / "local_memory_store")))
 STORE_DIR.mkdir(parents=True, exist_ok=True)
 
 _embedder: TextEmbedding | None = None

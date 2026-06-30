@@ -1,9 +1,9 @@
 import logging
 from fastapi import APIRouter, HTTPException
-from models.schemas import QueryRequest, QueryResponse, ForgetRequest, MemoryStats, Source
-from services import cognee_service, local_memory, synthesis
+from app.models.schemas import QueryRequest, QueryResponse, ForgetRequest, MemoryStats, Source
+from app.services import cognee_service, local_memory, synthesis
 from datetime import datetime
-from routers.ingest import jobs   # read live job stats
+from app.api.routes.ingest import jobs   # read live job stats
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/chat", tags=["chat"])

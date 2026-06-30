@@ -1,7 +1,7 @@
 import logging
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from models.schemas import IngestRequest, IngestStatus
-from services import github, processor, cognee_service, local_memory
+from app.models.schemas import IngestRequest, IngestStatus
+from app.services import github_client as github, processor, cognee_service, local_memory
 import hashlib
 
 logger = logging.getLogger(__name__)

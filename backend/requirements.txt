@@ -1,9 +1,18 @@
+# --- Web framework -----------------------------------------------------
 fastapi>=0.116.2,<1.0.0
 uvicorn[standard]>=0.29.0
+
+# --- HTTP client (GitHub API + Groq calls) ------------------------------
 httpx>=0.27.0
-cognee==1.2.2
+
+# --- Settings / validation ----------------------------------------------
 pydantic>=2.7.1
 pydantic-settings>=2.2.1
 python-dotenv>=1.0.1
+
+# --- Knowledge graph / memory --------------------------------------------
+cognee==1.2.2
+
+# --- Local vector embeddings (graph_mode=False fast path) ---------------
 fastembed>=0.3.0
 numpy>=1.26.0

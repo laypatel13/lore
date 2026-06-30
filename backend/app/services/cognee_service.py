@@ -2,8 +2,8 @@ import os
 import logging
 import cognee
 from cognee.modules.search.types import SearchType
-from core.config import settings
-from models.schemas import Source
+from app.core.config import settings
+from app.models.schemas import Source
 
 logger = logging.getLogger(__name__)
 
