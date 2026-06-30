@@ -15,8 +15,7 @@ export default function NavBar({ repoId, repoName }: NavBarProps) {
       <div className={styles.navLeft}>
         <Link to="/" className={styles.logo}>
           <span className={styles.logoMark}>L</span>
-          <span className={styles.logoText}>LORE</span>
-          <span className={styles.logoVersion}>v0.1</span>
+          <span className={styles.logoText} style={{ color: 'var(--accent)' }}>LORE</span>
         </Link>
 
         {repoName && (
@@ -24,23 +23,23 @@ export default function NavBar({ repoId, repoName }: NavBarProps) {
             <div className={styles.separator} />
             <div className={styles.repoChip}>
               <div className="status-dot active" />
-              <span className="t-mono-sm" style={{ color: 'var(--ink-dim)' }}>{repoName}</span>
+              <span className="t-mono-sm" style={{ color: 'var(--accent)' }}>{repoName}</span>
             </div>
           </>
         )}
       </div>
 
       <nav className={styles.navCenter}>
-        <span className="t-mono-xs" style={{ color: 'var(--ink-ghost)' }}>
-          // CODEBASE MEMORY · COGNEE GRAPH ONLINE
+        <span className="t-mono-xs" style={{ color: 'var(--accent)' }}>
+          ASK YOUR CODEBASE WHY..?
         </span>
       </nav>
 
       <div className={styles.navRight}>
         {repoId && (
           <>
-            <Link to={`/chat/${repoId}`} className="btn-ghost">Chat</Link>
-            <Link to={`/memory/${repoId}`} className="btn-ghost">Graph</Link>
+            <Link to={`/chat/${repoId}`} className="btn-ghost" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}>Chat</Link>
+            <Link to={`/memory/${repoId}`} className="btn-ghost" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}>Graph</Link>
           </>
         )}
         {isHome && (
