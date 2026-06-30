@@ -23,6 +23,7 @@ export default function AnalyzePage() {
   const [includeCommits, setCommits]      = useState(true)
   const [includePrs, setPrs]              = useState(true)
   const [includeIssues, setIssues]        = useState(true)
+  const [graphMode, setGraphMode]         = useState(false)   // false = fast vector mode (default)
   const [phase, setPhase]                 = useState<Phase>('input')
   const [status, setStatus]               = useState<IngestStatus | null>(null)
   const [stepStates, setStepStates]       = useState<StepState[]>(Array(5).fill('idle'))
@@ -65,7 +66,7 @@ export default function AnalyzePage() {
     setLogs([])
 
     try {
-      const res = await api.ingest.start({ repo_url: url.trim(), include_commits: includeCommits, include_prs: includePrs, include_issues: includeIssues })
+      const res = await api.ingest.start({ repo_url: url.trim(), include_commits: includeCommits, include_prs: includePrs, include_issues: includeIssues, graph_mode: graphMode })
       setStatus(res)
       simulateProgress()
 
@@ -134,6 +135,19 @@ export default function AnalyzePage() {
                 </label>
               ))}
             </div>
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--line)' }}>
+              <label className={styles.checkChip} style={{ display: 'inline-flex' }}>
+                <input type="checkbox" checked={graphMode} onChange={e => setGraphMode(e.target.checked)} />
+                <span className="t-mono-xs">
+                  {graphMode ? '🧠 Full Graph Mode (Cognee LLM extraction)' : '⚡ Fast Vector Mode (instant, local)'}
+                </span>
+              </label>
+              <p className="t-body-sm" style={{ color: 'var(--ink-dim)', marginTop: 6, maxWidth: 480 }}>
+                {graphMode
+                  ? 'Uses an LLM to extract entities and relationships into a full knowledge graph. Slower, needs API quota.'
+                  : 'Embeds and indexes everything locally for instant semantic search. No LLM calls required.'}
+              </p>
+            </div>
           </SpecBox>
         )}
 
@@ -172,10 +186,10 @@ export default function AnalyzePage() {
             {status && (
               <div className={styles.statsGrid}>
                 {[
+                  ['Files', status.files_discovered ?? 0],
+                  ['Chunks', status.chunks ?? 0],
                   ['Commits', status.commits],
-                  ['Pull Requests', status.prs],
-                  ['Issues', status.issues],
-                  ['Nodes', status.nodes || status.commits + status.prs + status.issues],
+                  ['PRs / Issues', status.prs + status.issues],
                 ].map(([k,v]) => (
                   <div key={k as string} className={styles.statCell}>
                     <span className={styles.statVal}>{(v as number).toLocaleString()}</span>

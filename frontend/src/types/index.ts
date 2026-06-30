@@ -3,6 +3,7 @@ export interface IngestRequest {
   include_commits: boolean
   include_prs: boolean
   include_issues: boolean
+  graph_mode: boolean
 }
 
 export interface IngestStatus {
@@ -11,6 +12,9 @@ export interface IngestStatus {
   commits: number
   prs: number
   issues: number
+  files_discovered: number   // NEW
+  chunks: number             // NEW
+  docs_stored: number        // NEW
   nodes: number
   message: string
 }
@@ -39,6 +43,8 @@ export interface MemoryStats {
   commits: number
   prs: number
   issues: number
+  files?: number     // NEW
+  chunks?: number    // NEW
   last_updated: string
 }
 
@@ -53,7 +59,7 @@ export interface Message {
 export interface GraphNode {
   id: string
   label: string
-  type: 'commit' | 'pr' | 'issue' | 'contributor' | 'decision'
+  type: 'commit' | 'pr' | 'issue' | 'contributor' | 'decision' | 'file'
   x: string
   y: string
 }

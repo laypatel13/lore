@@ -1,5 +1,12 @@
 import multiprocessing
 multiprocessing.set_start_method('fork', force=True)
+
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -14,8 +21,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Lore API",
-    description="Codebase memory powered by Cognee Cloud",
-    version="0.1.0",
+    description="Codebase memory powered by Cognee",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -32,7 +39,7 @@ app.include_router(chat.router)
 
 @app.get("/")
 async def root():
-    return {"status": "ok", "service": "Lore API", "version": "0.1.0"}
+    return {"status": "ok", "service": "Lore API", "version": "0.2.0"}
 
 @app.get("/health")
 async def health():

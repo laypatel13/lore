@@ -5,3 +5,5 @@ cognee==1.2.2
 pydantic>=2.7.1
 pydantic-settings>=2.2.1
 python-dotenv>=1.0.1
+fastembed>=0.3.0
+numpy>=1.26.0
