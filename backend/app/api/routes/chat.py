@@ -30,7 +30,20 @@ async def query(req: QueryRequest):
             for i, r in enumerate(results)
         ]
         raw_chunks = [r["text"] for r in results]
-        answer = await synthesis.synthesize_answer(req.question, raw_chunks)
+
+        # Ground truth: exact counts from the ingestion job, not guessed
+        # from whatever chunks happened to match this query. Fixes the
+        # "15 commits" hallucination — job.commits is the real number.
+        ground_truth = None
+        if job:
+            ground_truth = {
+                "commits": job.commits,
+                "pull requests": job.prs,
+                "issues": job.issues,
+                "files in repo": job.files_discovered,
+            }
+
+        answer = await synthesis.synthesize_answer(req.question, raw_chunks, ground_truth=ground_truth)
         return QueryResponse(answer=answer, sources=sources, nodes_traversed=len(sources))
     except Exception as e:
         logger.exception(f"[CHAT] query error: {e}")

@@ -16,12 +16,18 @@ GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = "llama-3.1-8b-instant"
 
 
-async def synthesize_answer(question: str, chunks: list[str]) -> str:
+async def synthesize_answer(question: str, chunks: list[str], ground_truth: dict | None = None) -> str:
     """
     Ask Groq to write a short, direct answer to `question` using only the
     provided `chunks` as context. Falls back to a raw-chunk excerpt if the
     call fails for any reason (rate limit, network, etc) so chat never
     breaks — it just degrades to the old raw-dump behavior.
+
+    `ground_truth`, if provided, is a dict of exact known counts (commits,
+    prs, issues, files, chunks) pulled from the ingestion job — not from
+    chunk text. These get injected as authoritative facts so the model
+    never has to estimate "how many X" from a handful of retrieved chunks
+    that only ever cover a fraction of the full dataset.
     """
     if not chunks:
         return "No relevant context found in memory."
@@ -31,14 +37,25 @@ async def synthesize_answer(question: str, chunks: list[str]) -> str:
     if len(context) > 6000:
         context = context[:6000]
 
-    prompt = f"""You are a codebase assistant answering questions about a Git repository using retrieved context chunks below.
+    ground_truth_block = ""
+    if ground_truth:
+        facts = "\n".join(f"- {key}: {value}" for key, value in ground_truth.items())
+        ground_truth_block = f"""
+Known facts about this repository (exact counts from the ingestion job —
+always use these for any question asking "how many" of something; never
+estimate or count from the context chunks below, since those are only a
+small sample of the full dataset):
+{facts}
+"""
 
+    prompt = f"""You are a codebase assistant answering questions about a Git repository using retrieved context chunks below.
+{ground_truth_block}
 Context:
 {context}
 
 Question: {question}
 
-Write a short, direct, helpful answer in 2-4 sentences using only the context above. If the context doesn't fully answer the question, say what you can determine and note what's missing. Do not mention "chunks", "context", or "sources" — just answer naturally like a knowledgeable teammate."""
+Write a short, direct, helpful answer in 2-4 sentences using only the context above and the known facts (if given). If the context doesn't fully answer the question, say what you can determine and note what's missing. Do not mention "chunks", "context", or "sources" — just answer naturally like a knowledgeable teammate."""
 
     try:
         async with httpx.AsyncClient(timeout=15) as client:
