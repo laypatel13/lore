@@ -1,7 +1,7 @@
 import logging
 from fastapi import APIRouter, HTTPException
 from models.schemas import QueryRequest, QueryResponse, ForgetRequest, MemoryStats, Source
-from services import cognee_service, local_memory
+from services import cognee_service, local_memory, synthesis
 from datetime import datetime
 from routers.ingest import jobs   # read live job stats
 
@@ -19,7 +19,8 @@ async def query(req: QueryRequest):
             answer, sources = await cognee_service.recall(req.question, dataset=req.repo_id, graph_mode=True)
             return QueryResponse(answer=answer, sources=sources, nodes_traversed=len(sources))
 
-        # Fast Mode: local cosine similarity search, no LLM, instant
+        # Fast Mode: local cosine similarity search, no LLM for retrieval,
+        # one small Groq call to synthesize a clean answer from results.
         results = await local_memory.search(req.question, dataset=req.repo_id, top_k=6)
         if not results:
             return QueryResponse(answer="No relevant context found in memory.", sources=[], nodes_traversed=0)
@@ -28,7 +29,8 @@ async def query(req: QueryRequest):
             Source(type="chunk", id=f"local-{i}", text=r["text"][:200])
             for i, r in enumerate(results)
         ]
-        answer = "\n\n".join(r["text"] for r in results)
+        raw_chunks = [r["text"] for r in results]
+        answer = await synthesis.synthesize_answer(req.question, raw_chunks)
         return QueryResponse(answer=answer, sources=sources, nodes_traversed=len(sources))
     except Exception as e:
         logger.exception(f"[CHAT] query error: {e}")
