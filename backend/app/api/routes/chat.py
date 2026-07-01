@@ -1,6 +1,6 @@
 import logging
 from fastapi import APIRouter, HTTPException
-from app.models.schemas import QueryRequest, QueryResponse, ForgetRequest, MemoryStats, Source
+from app.models.schemas import QueryRequest, QueryResponse, ForgetRequest, MemoryStats, Source, GraphResponse, GraphNode, GraphEdge
 from app.services import cognee_service, local_memory, synthesis
 from datetime import datetime
 from app.api.routes.ingest import jobs   # read live job stats
@@ -95,6 +95,7 @@ async def memory_stats(repo_id: str):
             files=job.files_discovered,
             chunks=job.chunks,
             last_updated=datetime.utcnow().isoformat(),
+            graph_mode=job.graph_mode,
         )
     # No job found — return zeros
     return MemoryStats(
@@ -107,4 +108,40 @@ async def memory_stats(repo_id: str):
         files=0,
         chunks=0,
         last_updated=datetime.utcnow().isoformat(),
+        graph_mode=False,
     )
+
+
+@router.get("/graph/{repo_id}", response_model=GraphResponse)
+async def get_graph(repo_id: str):
+    """
+    Return the real Cognee-extracted graph (nodes/edges) for Full Graph Mode
+    repos. Fast Mode repos never ran cognify(), so this returns an empty
+    graph with graph_mode=False — frontend should fall back to the
+    stylized summary view in that case.
+    """
+    job = jobs.get(repo_id)
+    graph_mode = job.graph_mode if job else False
+
+    if not graph_mode:
+        return GraphResponse(graph_mode=False, nodes=[], edges=[])
+
+    try:
+        raw_nodes, raw_edges = await cognee_service.get_graph(dataset=repo_id)
+
+        nodes = [
+            GraphNode(
+                id=str(n[0]),
+                label=(n[1].get("name") or n[1].get("type") or str(n[0])[:8]),
+                type=n[1].get("type", "Entity"),
+            )
+            for n in raw_nodes
+        ]
+        edges = [
+            GraphEdge(source=str(e[0]), target=str(e[1]), label=str(e[2]))
+            for e in raw_edges
+        ]
+        return GraphResponse(graph_mode=True, nodes=nodes, edges=edges)
+    except Exception as e:
+        logger.exception(f"[CHAT] get_graph error: {e}")
+        raise HTTPException(500, str(e))

@@ -29,7 +29,7 @@ async def setup():
     change does not affect it.
     """
     os.environ["LLM_PROVIDER"] = "ollama"
-    os.environ["LLM_MODEL"] = "llama3.1:8b"
+    os.environ["LLM_MODEL"] = "llama3.1:8b"  # no "ollama/" prefix — Cognee's OllamaAPIAdapter forwards this literally to Ollama's API
     os.environ["LLM_ENDPOINT"] = "http://localhost:11434/v1"
     os.environ["LLM_API_KEY"] = "ollama"  # dummy value, Cognee requires non-empty
     os.environ["EMBEDDING_PROVIDER"] = "ollama"
@@ -157,6 +157,30 @@ async def improve(dataset: str, graph_mode: bool = DEFAULT_GRAPH_MODE):
         logger.info(f"[COGNEE] improve() OK")
     except Exception as e:
         logger.error(f"[COGNEE] improve() ERROR (non-fatal): {e}")
+
+
+async def get_graph(dataset: str) -> tuple[list, list]:
+    """
+    Retrieve the raw Cognee graph (nodes + edges) for visualization.
+    Only meaningful for repos ingested with graph_mode=True — Fast Mode
+    never calls cognify(), so there's no graph to fetch.
+
+    Note: Cognee's local graph engine (ladybug/kuzu) does not filter
+    get_graph_data() by dataset — it returns the full local graph store.
+    Fine for a single-repo demo; if multiple graph_mode repos are ingested
+    in the same session, this will return their combined graph.
+    """
+    from cognee.infrastructure.databases.graph import get_graph_engine
+
+    logger.info(f"[COGNEE] get_graph() dataset='{dataset}'")
+    try:
+        graph_engine = await get_graph_engine()
+        nodes, edges = await graph_engine.get_graph_data()
+        logger.info(f"[COGNEE] get_graph() returned {len(nodes)} nodes, {len(edges)} edges")
+        return nodes, edges
+    except Exception as e:
+        logger.error(f"[COGNEE] get_graph() ERROR: {e}")
+        return [], []
 
 
 async def forget(dataset: str):

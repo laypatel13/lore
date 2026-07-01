@@ -46,6 +46,26 @@ export interface MemoryStats {
   files?: number     // NEW
   chunks?: number    // NEW
   last_updated: string
+  graph_mode: boolean  // NEW: tells frontend whether a real Cognee graph exists
+}
+
+// Real Cognee-extracted graph (only populated when graph_mode=True)
+export interface RealGraphNode {
+  id: string
+  label: string
+  type: string
+}
+
+export interface RealGraphEdge {
+  source: string
+  target: string
+  label: string
+}
+
+export interface GraphApiResponse {
+  graph_mode: boolean
+  nodes: RealGraphNode[]
+  edges: RealGraphEdge[]
 }
 
 export interface Message {

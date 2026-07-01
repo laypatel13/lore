@@ -49,3 +49,22 @@ class MemoryStats(BaseModel):
     files: int = 0
     chunks: int = 0
     last_updated: str
+    graph_mode: bool = False   # NEW: lets frontend know whether to fetch the real Cognee graph
+
+
+class GraphNode(BaseModel):
+    id: str
+    label: str
+    type: str
+
+
+class GraphEdge(BaseModel):
+    source: str
+    target: str
+    label: str = ""
+
+
+class GraphResponse(BaseModel):
+    graph_mode: bool
+    nodes: list[GraphNode] = []
+    edges: list[GraphEdge] = []
