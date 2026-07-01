@@ -19,16 +19,26 @@ DEFAULT_GRAPH_MODE = False
 
 
 async def setup():
-    """Configure Cognee on startup using env vars."""
-    os.environ["LLM_API_KEY"] = settings.LLM_API_KEY
-    os.environ["GROQ_API_KEY"] = settings.LLM_API_KEY
-    os.environ["LLM_MODEL"] = "groq/llama-3.1-8b-instant"
-    os.environ["LLM_ENDPOINT"] = "https://api.groq.com/openai/v1"
-    os.environ["EMBEDDING_PROVIDER"] = "fastembed"
-    os.environ["EMBEDDING_MODEL"] = "sentence-transformers/all-MiniLM-L6-v2"
-    os.environ["EMBEDDING_DIMENSIONS"] = "384"
+    """
+    Configure Cognee on startup to use local Ollama for both LLM and
+    embeddings. cognify() (used only in Full Graph Mode) issues many
+    sequential LLM calls per document, which blew through Groq's free-tier
+    rate limit and meant graph_mode=True had never actually completed.
+    Ollama has no rate limit, so this is the reliable engine for that path.
+    Chat synthesis (services/synthesis.py) still uses Groq directly — this
+    change does not affect it.
+    """
+    os.environ["LLM_PROVIDER"] = "ollama"
+    os.environ["LLM_MODEL"] = "llama3.1:8b"
+    os.environ["LLM_ENDPOINT"] = "http://localhost:11434/v1"
+    os.environ["LLM_API_KEY"] = "ollama"  # dummy value, Cognee requires non-empty
+    os.environ["EMBEDDING_PROVIDER"] = "ollama"
+    os.environ["EMBEDDING_MODEL"] = "nomic-embed-text"
+    os.environ["EMBEDDING_ENDPOINT"] = "http://localhost:11434/api/embed"
+    os.environ["EMBEDDING_DIMENSIONS"] = "768"
+    os.environ["HUGGINGFACE_TOKENIZER"] = "nomic-ai/nomic-embed-text-v1.5"
     os.environ["COGNEE_SKIP_CONNECTION_TEST"] = "true"
-    logger.info("[COGNEE] Setup complete")
+    logger.info("[COGNEE] Setup complete (Ollama: llama3.1:8b + nomic-embed-text)")
 
 
 async def remember_chunks(chunks: list[str], dataset: str, graph_mode: bool = DEFAULT_GRAPH_MODE) -> int:
