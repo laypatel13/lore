@@ -4,6 +4,7 @@ export interface IngestRequest {
   include_prs: boolean
   include_issues: boolean
   graph_mode: boolean
+  llm_provider?: 'ollama' | 'groq'   // only used when graph_mode=true
 }
 
 export interface IngestStatus {
@@ -17,6 +18,7 @@ export interface IngestStatus {
   docs_stored: number        // NEW
   nodes: number
   message: string
+  llm_provider?: 'ollama' | 'groq'
 }
 
 export interface Source {

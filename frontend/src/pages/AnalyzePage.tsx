@@ -24,6 +24,7 @@ export default function AnalyzePage() {
   const [includePrs, setPrs]              = useState(true)
   const [includeIssues, setIssues]        = useState(true)
   const [graphMode, setGraphMode]         = useState(false)   // false = fast vector mode (default)
+  const [llmProvider, setLlmProvider]     = useState<'ollama' | 'groq'>('ollama')   // only relevant when graphMode=true
   const [phase, setPhase]                 = useState<Phase>('input')
   const [status, setStatus]               = useState<IngestStatus | null>(null)
   const [stepStates, setStepStates]       = useState<StepState[]>(Array(5).fill('idle'))
@@ -66,7 +67,7 @@ export default function AnalyzePage() {
     setLogs([])
 
     try {
-      const res = await api.ingest.start({ repo_url: url.trim(), include_commits: includeCommits, include_prs: includePrs, include_issues: includeIssues, graph_mode: graphMode })
+      const res = await api.ingest.start({ repo_url: url.trim(), include_commits: includeCommits, include_prs: includePrs, include_issues: includeIssues, graph_mode: graphMode, llm_provider: llmProvider })
       setStatus(res)
       simulateProgress()
 
@@ -147,6 +148,42 @@ export default function AnalyzePage() {
                   ? 'Uses an LLM to extract entities and relationships into a full knowledge graph. Slower, needs API quota.'
                   : 'Embeds and indexes everything locally for instant semantic search. No LLM calls required.'}
               </p>
+              {graphMode && (
+                <div style={{ marginTop: 12 }}>
+                  <span className="t-mono-xs" style={{ color: 'var(--ink-dim)' }}>LLM Provider:</span>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => setLlmProvider('ollama')}
+                      className="t-mono-xs"
+                      style={{
+                        border: `1px solid ${llmProvider === 'ollama' ? 'var(--accent)' : 'var(--line)'}`,
+                        color: llmProvider === 'ollama' ? 'var(--accent)' : 'var(--ink-dim)',
+                        background: 'transparent', borderRadius: 4, padding: '4px 10px', cursor: 'pointer',
+                      }}
+                    >
+                      Ollama (local, reliable, no rate limit)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLlmProvider('groq')}
+                      className="t-mono-xs"
+                      style={{
+                        border: `1px solid ${llmProvider === 'groq' ? 'var(--accent)' : 'var(--line)'}`,
+                        color: llmProvider === 'groq' ? 'var(--accent)' : 'var(--ink-dim)',
+                        background: 'transparent', borderRadius: 4, padding: '4px 10px', cursor: 'pointer',
+                      }}
+                    >
+                      Groq (works anywhere, rate-limited)
+                    </button>
+                  </div>
+                  <p className="t-body-sm" style={{ color: 'var(--ink-dim)', marginTop: 6, maxWidth: 480 }}>
+                    {llmProvider === 'ollama'
+                      ? 'Requires Ollama running locally (localhost:11434). Not available on a deployed server.'
+                      : "Groq's free-tier rate limit makes extraction unreliable past a handful of chunks — expect retries or partial graphs."}
+                  </p>
+                </div>
+              )}
             </div>
           </SpecBox>
         )}
