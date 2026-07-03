@@ -9,7 +9,12 @@ class Settings(BaseSettings):
     COGNEE_API_KEY: str = ""
     COGNEE_SKIP_CONNECTION_TEST: str = "true"
     APP_ENV: str = "development"
-    CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5500"]
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5500",
+        "https://lore-psi-inky.vercel.app",
+    ]
 
     class Config:
         env_file = ".env"
