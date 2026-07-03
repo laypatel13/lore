@@ -15,7 +15,7 @@
   gap: 10px;
   border: 1px solid var(--border-soft);
   padding: 7px 14px;
-  background: rgba(127,219,255,0.06);
+  background: rgba(255,255,255,0.03);
   border-radius: var(--r-pill);
   margin-bottom: 24px;
 }
@@ -63,22 +63,30 @@
   border-radius: var(--r-pill);
   transition: all var(--transition);
 }
-.checkChip:hover { border-color: rgba(127,219,255,0.32); color: var(--ink); background: rgba(127,219,255,0.06); }
-.checkChip input { accent-color: var(--accent); }
+.checkChip:hover { border-color: var(--border-mid); color: var(--ink); background: rgba(255,255,255,0.05); }
+.checkChip input { accent-color: var(--ink); }
+
+/* GRAPH MODE TOGGLE ROW */
+.toggleRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
 
 /* PROGRESS */
 .progressTrack {
   height: 6px;
-  background: rgba(127,219,255,0.08);
+  background: rgba(255,255,255,0.06);
   margin-bottom: 28px;
   overflow: hidden;
   border-radius: var(--r-pill);
 }
 .progressFill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), #b8ecff);
+  background: linear-gradient(90deg, var(--ink-ghost), var(--ink));
   transition: width 0.5s var(--ease);
-  box-shadow: 0 0 12px rgba(127,219,255,0.5);
+  box-shadow: 0 0 12px rgba(242,241,237,0.35);
   border-radius: var(--r-pill);
 }
 
@@ -103,14 +111,14 @@
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--ink-ghost);
-  background: rgba(20,45,85,0.6);
+  background: rgba(255,255,255,0.03);
   transition: all var(--transition);
 }
 .idle  { color: var(--ink-ghost); }
 .active {
   border-color: var(--accent);
-  color: var(--accent);
-  box-shadow: 0 0 0 4px rgba(127,219,255,0.10);
+  color: var(--ink);
+  box-shadow: 0 0 0 4px rgba(242,241,237,0.08);
   animation: spin 1.5s linear infinite;
 }
 .done {
@@ -118,7 +126,7 @@
   color: var(--paper-deep);
   border-color: var(--accent);
   font-weight: 700;
-  box-shadow: 0 4px 14px rgba(127,219,255,0.35);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .mutedLabel { color: var(--ink-ghost); }
@@ -132,7 +140,7 @@
 .statCell {
   padding: 18px 16px;
   text-align: center;
-  background: rgba(20,45,85,0.5);
+  background: rgba(255,255,255,0.03);
   border: 1px solid var(--border-soft);
   border-radius: var(--r-input);
 }
@@ -140,13 +148,13 @@
   font-family: var(--font-display);
   font-size: 24px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--ink);
   display: block;
   margin-bottom: 4px;
 }
 
 .logStream {
-  background: rgba(0,0,0,0.18);
+  background: rgba(0,0,0,0.3);
   border: 1px solid var(--border-soft);
   border-radius: var(--r-input);
   padding: 16px 18px;
@@ -160,7 +168,7 @@
 .successHeader {
   padding: 14px 22px;
   border-bottom: 1px solid var(--border-soft);
-  background: linear-gradient(180deg, rgba(74,222,128,0.10), rgba(74,222,128,0.04));
+  background: linear-gradient(180deg, rgba(74,222,128,0.10), rgba(74,222,128,0.03));
   display: flex;
   align-items: center;
   gap: 10px;

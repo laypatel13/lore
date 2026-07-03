@@ -136,11 +136,15 @@ export default function AnalyzePage() {
                 </label>
               ))}
             </div>
-            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--line)' }}>
-              <label className={styles.checkChip} style={{ display: 'inline-flex' }}>
-                <input type="checkbox" checked={graphMode} onChange={e => setGraphMode(e.target.checked)} />
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-soft)' }}>
+              <label className={styles.toggleRow}>
+                <span className="lore-toggle">
+                  <input type="checkbox" checked={graphMode} onChange={e => setGraphMode(e.target.checked)} />
+                  <span className="track" />
+                  <span className="thumb" />
+                </span>
                 <span className="t-mono-xs">
-                  {graphMode ? '🧠 Full Graph Mode (Cognee LLM extraction)' : '⚡ Fast Vector Mode (instant, local)'}
+                  {graphMode ? 'Full Graph Mode (Cognee LLM extraction)' : 'Fast Vector Mode (instant, local)'}
                 </span>
               </label>
               <p className="t-body-sm" style={{ color: 'var(--ink-dim)', marginTop: 6, maxWidth: 480 }}>

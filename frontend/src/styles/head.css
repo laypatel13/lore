@@ -1,55 +1,60 @@
 /* ─────────────────────────────────────────────────────────────
-   LORE — Blueprint Intelligence Design System (polished)
-   Premium navy/blueprint aesthetic. Rounded corners, soft
-   elevation, generous whitespace. No backend logic touched.
+   LORE — Premium Intelligence Design System
+   Deep charcoal/black surfaces, glass layering, editorial type.
+   Fraunces for display, Space Grotesk for UI, JetBrains Mono
+   for code/data. No backend logic touched — tokens + utility
+   classes only, so every existing component keeps working.
    ────────────────────────────────────────────────────────────── */
 
 /* ─── TOKENS ─────────────────────────────────────────────── */
 :root {
-  --paper:      #1B3A6B;
-  --paper-deep: #142D55;
-  --grid:       #2A4F8A;
-  --ghost:      #1F4278;
-  --line:       #4A7BC4;
-  --line-dim:   #2E5A9C;
-  --ink:        #D4E8FF;
-  --ink-dim:    #7BA8D4;
-  --ink-ghost:  #4A6A9A;
-  --accent:     #7FDBFF;
-  --accent-dim: rgba(127, 219, 255, 0.12);
-  --accent-glow:rgba(127, 219, 255, 0.06);
-  --success:    #4ADE80;
-  --error:      #F87171;
-  --warn:       #FBBF24;
+  /* Base surfaces — deep black, not navy */
+  --paper:      #0A0A0B;
+  --paper-deep: #050506;
+  --grid:       #17181B;
+  --ghost:      #131316;
+  --line:       #2A2A2E;
+  --line-dim:   #1C1C1F;
+  --ink:        #F2F1ED;
+  --ink-dim:    #9B9B9F;
+  --ink-ghost:  #5A5A5E;
 
-  /* Layered surfaces */
-  --surface-1: rgba(31, 66, 120, 0.72);
-  --surface-2: rgba(20, 45, 85, 0.78);
-  --surface-glass: rgba(20, 45, 85, 0.55);
-  --border-soft: rgba(127, 219, 255, 0.10);
-  --border-mid:  rgba(127, 219, 255, 0.18);
+  /* Accent — warm off-white replaces the old blue; status colors carry hue */
+  --accent:      #F2F1ED;
+  --accent-dim:  rgba(242, 241, 237, 0.08);
+  --accent-glow: rgba(242, 241, 237, 0.10);
+  --success:     #4ADE80;
+  --error:       #F87171;
+  --warn:        #FBBF24;
 
-  /* Rounded radius system */
-  --r-button: 14px;
-  --r-input:  16px;
-  --r-card:   20px;
-  --r-panel:  20px;
-  --r-modal:  24px;
+  /* Layered glass surfaces */
+  --surface-1: rgba(255, 255, 255, 0.035);
+  --surface-2: rgba(255, 255, 255, 0.05);
+  --surface-glass: rgba(13, 13, 15, 0.68);
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --border-mid:  rgba(255, 255, 255, 0.14);
+
+  /* Radius system — tighter, more precise than the old rounded set */
+  --r-button: 10px;
+  --r-input:  12px;
+  --r-card:   16px;
+  --r-panel:  16px;
+  --r-modal:  20px;
   --r-pill:   999px;
 
-  /* Soft elevation */
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.18);
-  --shadow-md: 0 8px 24px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.10);
-  --shadow-lg: 0 24px 60px rgba(0,0,0,0.32), 0 4px 14px rgba(0,0,0,0.16);
-  --glow-accent: 0 0 0 1px rgba(127,219,255,0.18), 0 0 24px rgba(127,219,255,0.18);
+  /* Elevation — soft, deep, cinematic */
+  --shadow-sm: 0 2px 10px rgba(0,0,0,0.35);
+  --shadow-md: 0 10px 30px rgba(0,0,0,0.45), 0 2px 10px rgba(0,0,0,0.30);
+  --shadow-lg: 0 28px 70px rgba(0,0,0,0.55), 0 6px 18px rgba(0,0,0,0.35);
+  --glow-accent: 0 0 0 1px rgba(242,241,237,0.14), 0 0 28px rgba(242,241,237,0.08);
 
-  --font-display: 'Syne', sans-serif;
-  --font-body:    'Inter', sans-serif;
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-body:    'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   --font-mono:    'JetBrains Mono', monospace;
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --transition: 220ms var(--ease);
-  --transition-fast: 160ms var(--ease);
+  --transition: 200ms var(--ease);
+  --transition-fast: 140ms var(--ease);
 }
 
 /* ─── RESET ──────────────────────────────────────────────── */
@@ -73,14 +78,14 @@ body {
   overflow-x: hidden;
   min-height: 100vh;
 
-  /* Atmospheric blueprint grid — dimmed ~35% for less industrial feel */
+  /* Atmospheric charcoal grid — quiet, premium, no blue cast */
   background-image:
-    radial-gradient(1200px 800px at 80% -10%, rgba(127,219,255,0.06), transparent 60%),
-    radial-gradient(900px 700px at -10% 110%, rgba(127,219,255,0.05), transparent 60%),
-    linear-gradient(rgba(42, 79, 138, 0.55) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(42, 79, 138, 0.55) 1px, transparent 1px),
-    linear-gradient(rgba(127,219,255,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(127,219,255,0.025) 1px, transparent 1px);
+    radial-gradient(1200px 800px at 80% -10%, rgba(255,255,255,0.035), transparent 60%),
+    radial-gradient(900px 700px at -10% 110%, rgba(255,255,255,0.03), transparent 60%),
+    linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
   background-size: auto, auto, 56px 56px, 56px 56px, 14px 14px, 14px 14px;
   background-position: 0 0, 0 0, -1px -1px, -1px -1px, -1px -1px, -1px -1px;
   background-attachment: fixed;
@@ -90,49 +95,53 @@ body {
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(127,219,255,0.12);
+  background: rgba(255,255,255,0.10);
   border-radius: var(--r-pill);
   border: 2px solid transparent;
   background-clip: padding-box;
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(127,219,255,0.22); background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); background-clip: padding-box; }
 
 /* ─── TYPOGRAPHY ─────────────────────────────────────────── */
 .t-display-xl {
   font-family: var(--font-display);
+  font-optical-sizing: auto;
   font-size: clamp(48px, 7vw, 84px);
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.02;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
 }
 
 .t-display-lg {
   font-family: var(--font-display);
+  font-optical-sizing: auto;
   font-size: clamp(36px, 5vw, 56px);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.08;
-  letter-spacing: -0.022em;
+  letter-spacing: -0.018em;
 }
 
 .t-display-md {
   font-family: var(--font-display);
+  font-optical-sizing: auto;
   font-size: clamp(24px, 3vw, 36px);
   font-weight: 600;
   line-height: 1.18;
-  letter-spacing: -0.012em;
+  letter-spacing: -0.01em;
 }
 
 .t-heading {
   font-family: var(--font-display);
+  font-optical-sizing: auto;
   font-size: 20px;
   font-weight: 600;
   line-height: 1.35;
   letter-spacing: -0.005em;
 }
 
-.t-body-lg  { font-size: 18px; line-height: 1.7; }
-.t-body     { font-size: 15px; line-height: 1.65; }
-.t-body-sm  { font-size: 13px; line-height: 1.6; }
+.t-body-lg  { font-size: 18px; line-height: 1.7; font-weight: 400; }
+.t-body     { font-size: 15px; line-height: 1.65; font-weight: 400; }
+.t-body-sm  { font-size: 13px; line-height: 1.6; font-weight: 400; }
 
 .t-label {
   font-family: var(--font-mono);
@@ -154,45 +163,27 @@ body {
   padding: 0 40px;
 }
 
-/* ─── BLUEPRINT CARD (polished surface) ──────────────────── */
+/* ─── GLASS CARD (default premium surface, no HUD corners) ── */
 .bp-card {
-  background: linear-gradient(180deg, rgba(31,66,120,0.78), rgba(20,45,85,0.78));
-  border: 1px solid var(--border-mid);
+  background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
+  border: 1px solid var(--border-soft);
   border-radius: var(--r-card);
   box-shadow: var(--shadow-md);
   position: relative;
   transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(16px) saturate(140%);
 }
 
 .bp-card:hover {
-  border-color: rgba(127,219,255,0.28);
+  border-color: var(--border-mid);
   box-shadow: var(--shadow-lg);
 }
-
-/* Subtle corner brackets — kept as quiet brand signal */
-.bp-card::before,
-.bp-card::after {
-  content: '';
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  border-color: var(--accent);
-  border-style: solid;
-  opacity: 0.35;
-  pointer-events: none;
-  transition: opacity var(--transition);
-}
-.bp-card::before { top: 8px;    left: 8px;    border-width: 1.5px 0 0 1.5px; border-top-left-radius: 6px; }
-.bp-card::after  { bottom: 8px; right: 8px;   border-width: 0 1.5px 1.5px 0; border-bottom-right-radius: 6px; }
-.bp-card:hover::before,
-.bp-card:hover::after { opacity: 0.65; }
 
 /* ─── SPEC HEADER inside card ────────────────────────────── */
 .spec-header {
   padding: 14px 22px;
   border-bottom: 1px solid var(--border-soft);
-  background: linear-gradient(180deg, rgba(20,45,85,0.55), rgba(20,45,85,0.25));
+  background: rgba(255,255,255,0.02);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -201,42 +192,40 @@ body {
 
 /* ─── BUTTONS ────────────────────────────────────────────── */
 .btn-primary {
-  background: linear-gradient(180deg, #a8e8ff, var(--accent));
+  background: linear-gradient(180deg, #FFFFFF, #E9E7E0);
   color: var(--paper-deep);
   border: none;
   border-radius: var(--r-button);
   padding: 12px 26px;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   cursor: pointer;
   transition: all var(--transition);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 6px 18px rgba(127,219,255,0.18), inset 0 1px 0 rgba(255,255,255,0.4);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.6);
   will-change: transform;
 }
 .btn-primary:hover {
-  transform: translateY(-1px) scale(1.02);
-  box-shadow: 0 10px 28px rgba(127,219,255,0.32), inset 0 1px 0 rgba(255,255,255,0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.7);
 }
-.btn-primary:active { transform: translateY(0) scale(1.00); }
+.btn-primary:active { transform: translateY(0); }
 
 .btn-secondary {
-  background: rgba(127,219,255,0.06);
-  color: var(--accent);
-  border: 1px solid rgba(127,219,255,0.25);
+  background: rgba(255,255,255,0.03);
+  color: var(--ink);
+  border: 1px solid var(--border-mid);
   border-radius: var(--r-button);
   padding: 11px 24px;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   cursor: pointer;
   transition: all var(--transition);
   text-decoration: none;
@@ -246,8 +235,8 @@ body {
   backdrop-filter: blur(8px);
 }
 .btn-secondary:hover {
-  background: rgba(127,219,255,0.12);
-  border-color: var(--accent);
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.28);
   transform: translateY(-1px);
 }
 
@@ -270,8 +259,8 @@ body {
 }
 .btn-ghost:hover {
   color: var(--ink);
-  border-color: rgba(127,219,255,0.3);
-  background: rgba(127,219,255,0.06);
+  border-color: var(--border-mid);
+  background: rgba(255,255,255,0.05);
 }
 .btn-ghost.danger {
   color: var(--error);
@@ -303,17 +292,65 @@ body {
 .bp-tag {
   font-family: var(--font-mono);
   font-size: 10px;
-  letter-spacing: 0.08em;
-  color: var(--accent);
-  background: rgba(127,219,255,0.10);
-  border: 1px solid rgba(127,219,255,0.22);
+  letter-spacing: 0.06em;
+  color: var(--ink-dim);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-mid);
   padding: 4px 10px;
   border-radius: var(--r-pill);
   text-transform: uppercase;
   white-space: nowrap;
   transition: all var(--transition-fast);
 }
-.bp-tag:hover { background: rgba(127,219,255,0.18); }
+.bp-tag:hover { background: rgba(255,255,255,0.08); color: var(--ink); border-color: rgba(255,255,255,0.22); }
+
+/* ─── TOGGLE SWITCH (used by AnalyzePage graph-mode + filters) ─
+   Wraps a native <input type="checkbox">; visually a pill switch
+   instead of a browser checkbox. No markup or state changes
+   needed — checkbox stays functional, this is pure CSS. ──── */
+.lore-toggle {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.lore-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+.lore-toggle .track {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--r-pill);
+  transition: background var(--transition), border-color var(--transition);
+}
+.lore-toggle .thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--ink-dim);
+  transition: transform var(--transition), background var(--transition);
+}
+.lore-toggle input:checked ~ .track {
+  background: rgba(242,241,237,0.16);
+  border-color: rgba(242,241,237,0.4);
+}
+.lore-toggle input:checked ~ .thumb {
+  transform: translateX(16px);
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(242,241,237,0.4);
+}
 
 /* ─── DIVIDER ────────────────────────────────────────────── */
 .bp-divider {
@@ -323,7 +360,7 @@ body {
 
 /* ─── SELECTION ──────────────────────────────────────────── */
 ::selection {
-  background: rgba(127,219,255,0.28);
+  background: rgba(242,241,237,0.18);
   color: var(--ink);
 }
 

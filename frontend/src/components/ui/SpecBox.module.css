@@ -3,10 +3,9 @@
   overflow: hidden;
 }
 .accent {
-  border-color: rgba(127,219,255,0.32);
-  box-shadow: var(--shadow-md), 0 0 0 1px rgba(127,219,255,0.10), 0 0 28px rgba(127,219,255,0.08);
+  border-color: var(--border-mid);
+  box-shadow: var(--shadow-md), 0 0 0 1px rgba(242,241,237,0.08), 0 0 28px rgba(242,241,237,0.05);
 }
-.accent::before, .accent::after { opacity: 0.8; }
 .body { padding: 24px; }
 
 @media (max-width: 640px) {

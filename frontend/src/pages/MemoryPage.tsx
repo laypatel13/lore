@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useParams } from '@/lib/router-compat'
+import { useParams, useNavigate, Link } from '@/lib/router-compat'
 import NavBar from '../components/layout/NavBar'
 import { api } from '../api/client'
 import type { MemoryStats, GraphApiResponse } from '../types'
 import styles from './MemoryPage.module.css'
 
-type OpState = { label: string; pct: number; msg: string } | null
+type OpState = { label: string; pct: number; msg: string; tone: 'default' | 'error' } | null
+type RealEdge = { source: string; target: string; label?: string }
 
 const NODE_COLORS: Record<string, string> = {
   Decision:    'var(--accent)',
@@ -62,18 +63,18 @@ function deriveNodes(stats: MemoryStats) {
 
 export default function MemoryPage() {
   const { repoId } = useParams<{ repoId: string }>();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<MemoryStats | null>(null);
   const [selectedId, setSelected] = useState('root');
   const [op, setOp] = useState<OpState>(null);
   const [loading, setLoading] = useState(true);
   const [nodes, setNodes] = useState<any[]>([]);
   const [isRealGraph, setIsRealGraph] = useState(false);
-  const [realEdges, setRealEdges] = useState<{ source: string; target: string }[]>([]);
+  const [realEdges, setRealEdges] = useState<RealEdge[]>([]);
   const [fullGraphData, setFullGraphData] = useState<GraphApiResponse | null>(null);
   const [activeTypes, setActiveTypes] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [zoom, setZoom] = useState(1);
-  const [panelOpen, setPanelOpen] = useState(true);
 
   // Cognee's raw graph mixes real extracted entities (Entity, EntityType)
   // with internal document-processing bookkeeping (DocumentChunk,
@@ -97,7 +98,7 @@ export default function MemoryPage() {
     const keepIds = new Set(filteredNodes.map(n => n.id));
     const filteredEdges = graph.edges.filter(e => keepIds.has(e.source) && keepIds.has(e.target));
     setNodes(deriveRealNodes({ ...graph, nodes: filteredNodes }));
-    setRealEdges(filteredEdges.map(e => ({ source: e.source, target: e.target })));
+    setRealEdges(filteredEdges.map(e => ({ source: e.source, target: e.target, label: e.label })));
   };
 
   useEffect(() => {
@@ -133,6 +134,16 @@ export default function MemoryPage() {
       })
       .catch(() => setLoading(false));
   }, [repoId]);
+
+  // Keep the detail panel pointed at a node that actually exists in the
+  // current (possibly filtered) node set.
+  useEffect(() => {
+    if (nodes.length === 0) return;
+    if (!nodes.find(n => n.id === selectedId)) {
+      setSelected(nodes[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes]);
 
   const toggleType = (type: string) => {
     if (!fullGraphData) return;
@@ -185,6 +196,63 @@ export default function MemoryPage() {
   };
 
   const currentNodes = nodes.length > 0 ? nodes : deriveNodes(stats || { commits: 0, prs: 0, issues: 0, files: 0, chunks: 0 } as any);
+  const selectedNode = currentNodes.find(n => n.id === selectedId) ?? null;
+
+  // Connections for the selected node — real edges in graph_mode, a simple
+  // hub-and-spoke relationship in the synthetic Fast Vector view.
+  const connections = selectedNode
+    ? isRealGraph
+      ? realEdges
+          .filter(e => e.source === selectedId || e.target === selectedId)
+          .map(e => {
+            const otherId = e.source === selectedId ? e.target : e.source;
+            const other = currentNodes.find(n => n.id === otherId);
+            const direction: 'out' | 'in' = e.source === selectedId ? 'out' : 'in';
+            return { id: otherId, label: other?.label ?? otherId, type: other?.type, direction, edgeLabel: e.label };
+          })
+      : selectedId === 'root'
+        ? currentNodes.filter(n => n.id !== 'root').map(n => ({ id: n.id, label: n.label, type: n.type, direction: 'out' as const, edgeLabel: undefined }))
+        : currentNodes.filter(n => n.id === 'root').map(n => ({ id: n.id, label: n.label, type: n.type, direction: 'in' as const, edgeLabel: undefined }))
+    : [];
+
+  const runImprove = async () => {
+    if (!repoId || op) return;
+    setOp({ label: 'improve()', pct: 12, msg: 'Enriching memory graph...', tone: 'default' });
+    const tick = setInterval(() => setOp(p => (p && p.pct < 88 ? { ...p, pct: p.pct + 12 } : p)), 350);
+    try {
+      await api.chat.improve(repoId);
+      clearInterval(tick);
+      setOp({ label: 'improve()', pct: 100, msg: 'Memory graph enriched.', tone: 'default' });
+      const s = await api.chat.stats(repoId);
+      setStats(s);
+      if (s.graph_mode) {
+        const graph = await api.chat.graph(repoId);
+        if (graph.graph_mode) {
+          setFullGraphData(graph);
+          applyGraphFilter(graph, activeTypes.size ? activeTypes : new Set(graph.nodes.map(n => n.type)), searchQuery);
+        }
+      }
+    } catch {
+      clearInterval(tick);
+      setOp({ label: 'improve()', pct: 100, msg: 'Could not reach backend.', tone: 'error' });
+    } finally {
+      setTimeout(() => setOp(null), 2000);
+    }
+  };
+
+  const runForget = async () => {
+    if (!repoId || op) return;
+    if (!window.confirm('This permanently deletes this case\u2019s memory. Continue?')) return;
+    setOp({ label: 'forget(dataset)', pct: 25, msg: 'Pruning dataset...', tone: 'default' });
+    try {
+      await api.chat.forget(repoId);
+      setOp({ label: 'forget(dataset)', pct: 100, msg: 'Memory dataset removed.', tone: 'default' });
+      setTimeout(() => navigate('/analyze'), 1200);
+    } catch {
+      setOp({ label: 'forget(dataset)', pct: 100, msg: 'Could not reach backend.', tone: 'error' });
+      setTimeout(() => setOp(null), 2000);
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -192,7 +260,73 @@ export default function MemoryPage() {
 
       <div className={styles.layout}>
 
-        {/* Sidebar (unchanged) */}
+        {/* LEFT: FILTERS + MEMORY OPERATIONS */}
+        <aside className={styles.sidebar}>
+          <div className={styles.sideSection}>
+            <div className="t-label" style={{ marginBottom: 12 }}>Node Filters</div>
+
+            {isRealGraph && fullGraphData ? (
+              <>
+                <input
+                  type="text"
+                  placeholder="Search nodes..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className={styles.filterSearch}
+                />
+                <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                  <button onClick={() => setAllTypes(true)} className={styles.filterActionBtn}>All</button>
+                  <button onClick={() => setAllTypes(false)} className={styles.filterActionBtn}>None</button>
+                </div>
+                {allTypes.map(type => (
+                  <label key={type} className={styles.filterRow} style={{ cursor: 'pointer' }}>
+                    <span className={styles.filterLeft}>
+                      <span className={styles.filterDot} style={{ background: NODE_COLORS[type] ?? 'var(--ink-dim)', color: NODE_COLORS[type] ?? 'var(--ink-dim)' }} />
+                      <span className="t-mono-xs" style={{ color: activeTypes.has(type) ? 'var(--ink)' : 'var(--ink-ghost)' }}>{type}</span>
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="t-mono-xs" style={{ color: 'var(--ink-ghost)' }}>{typeCounts[type]}</span>
+                      <input type="checkbox" checked={activeTypes.has(type)} onChange={() => toggleType(type)} />
+                    </span>
+                  </label>
+                ))}
+              </>
+            ) : (
+              <>
+                {Array.from(new Set(currentNodes.map(n => n.type))).map(type => (
+                  <div key={type} className={styles.filterRow}>
+                    <span className={styles.filterLeft}>
+                      <span className={styles.filterDot} style={{ background: NODE_COLORS[type] ?? 'var(--ink-dim)', color: NODE_COLORS[type] ?? 'var(--ink-dim)' }} />
+                      <span className="t-mono-xs">{type}</span>
+                    </span>
+                    <input type="checkbox" checked disabled />
+                  </div>
+                ))}
+                <p className="t-body-sm" style={{ color: 'var(--ink-ghost)', marginTop: 10, lineHeight: 1.6 }}>
+                  Per-type filtering is available once this case is ingested in Full Graph Mode.
+                </p>
+              </>
+            )}
+          </div>
+
+          <div className={styles.sideSection}>
+            <div className="t-label" style={{ marginBottom: 12 }}>Memory Operations</div>
+            <button className={`${styles.opBtn} ${styles.improve}`} onClick={runImprove} disabled={!!op}>
+              <span>improve()</span><span>→</span>
+            </button>
+            <button className={`${styles.opBtn} ${styles.forget}`} onClick={runForget} disabled={!!op}>
+              <span>forget(dataset)</span><span>→</span>
+            </button>
+            {op && (
+              <div style={{ marginTop: 10 }}>
+                <div className={styles.opTrack}>
+                  <div className={styles.opFill} style={{ width: `${op.pct}%`, background: op.tone === 'error' ? 'var(--error)' : undefined }} />
+                </div>
+                <p className="t-mono-xs" style={{ color: op.tone === 'error' ? 'var(--error)' : 'var(--ink-dim)', marginTop: 8 }}>{op.msg}</p>
+              </div>
+            )}
+          </div>
+        </aside>
 
         {/* GRAPH CANVAS */}
         <div className={styles.graphArea}>
@@ -214,7 +348,7 @@ export default function MemoryPage() {
               <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none' }}>
                 <defs>
                   <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
-                    <path d="M0,0 L0,6 L6,3 z" fill="rgba(127,219,255,0.4)" />
+                    <path d="M0,0 L0,6 L6,3 z" fill="rgba(255,255,255,0.35)" />
                   </marker>
                 </defs>
                 {isRealGraph
@@ -227,7 +361,7 @@ export default function MemoryPage() {
                           key={`${e.source}-${e.target}-${i}`}
                           x1={source.x} y1={source.y}
                           x2={target.x} y2={target.y}
-                          stroke="rgba(127,219,255,0.3)"
+                          stroke="rgba(255,255,255,0.22)"
                           strokeWidth="1.2"
                           markerEnd="url(#arr)"
                         />
@@ -242,7 +376,7 @@ export default function MemoryPage() {
                           y1={root?.y || '47%'}
                           x2={n.x} 
                           y2={n.y}
-                          stroke={i % 2 === 0 ? "rgba(127,219,255,0.35)" : "rgba(127,219,255,0.2)"}
+                          stroke={i % 2 === 0 ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.16)"}
                           strokeWidth={i % 2 === 0 ? "1.5" : "1"}
                           strokeDasharray={i % 2 === 0 ? undefined : "4 4"}
                           markerEnd={i % 2 === 0 ? "url(#arr)" : undefined}
@@ -269,7 +403,7 @@ export default function MemoryPage() {
             </div>
 
             <div className={styles.canvasLabel}>
-              <span className="t-mono-xs" style={{ color: 'var(--accent)' }}>
+              <span className="t-mono-xs" style={{ color: 'var(--ink)' }}>
                 {isRealGraph
                   ? `Full Graph (Cognee LLM) • ${nodes.length}${fullGraphData ? `/${fullGraphData.nodes.length}` : ''} nodes, ${realEdges.length} edges`
                   : 'Fast Local Vector View • Drag nodes to rearrange'}
@@ -277,85 +411,86 @@ export default function MemoryPage() {
             </div>
 
             {isRealGraph && (
-              <div style={{
-                position: 'absolute', bottom: '12px', right: '12px',
-                display: 'flex', gap: '4px', alignItems: 'center',
-              }}>
+              <div className={styles.zoomControls}>
                 <button
                   onClick={() => setZoom(z => Math.max(0.3, z - 0.2))}
-                  className="t-mono-xs"
-                  style={{ background: 'rgba(11,22,44,0.9)', border: '1px solid var(--accent)', borderRadius: '4px', color: 'var(--accent)', width: '28px', height: '28px', cursor: 'pointer' }}
+                  className={styles.zoomBtn}
                 >−</button>
-                <span className="t-mono-xs" style={{ color: 'var(--ink-dim)', width: '40px', textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
+                <span className={styles.zoomLabel}>{Math.round(zoom * 100)}%</span>
                 <button
                   onClick={() => setZoom(z => Math.min(3, z + 0.2))}
-                  className="t-mono-xs"
-                  style={{ background: 'rgba(11,22,44,0.9)', border: '1px solid var(--accent)', borderRadius: '4px', color: 'var(--accent)', width: '28px', height: '28px', cursor: 'pointer' }}
+                  className={styles.zoomBtn}
                 >+</button>
                 <button
                   onClick={() => setZoom(1)}
-                  className="t-mono-xs"
-                  style={{ background: 'rgba(11,22,44,0.9)', border: '1px solid var(--accent)', borderRadius: '4px', color: 'var(--accent)', padding: '4px 8px', cursor: 'pointer' }}
+                  className={styles.zoomResetBtn}
                 >Reset</button>
-              </div>
-            )}
-
-            {/* Filter control panel */}
-            {isRealGraph && fullGraphData && (
-              <div style={{
-                position: 'absolute', top: '12px', right: '12px',
-                background: 'rgba(11,22,44,0.95)', border: '1px solid var(--accent)',
-                borderRadius: '6px', padding: panelOpen ? '12px' : '6px 10px',
-                maxWidth: '220px', maxHeight: panelOpen ? '70vh' : 'auto', overflowY: 'auto',
-              }}>
-                <div
-                  onClick={() => setPanelOpen(!panelOpen)}
-                  className="t-mono-xs"
-                  style={{ color: 'var(--accent)', cursor: 'pointer', marginBottom: panelOpen ? '8px' : 0, fontWeight: 'bold' }}
-                >
-                  {panelOpen ? '▾ Filter Nodes' : '▸ Filter'}
-                </div>
-                {panelOpen && (
-                  <>
-                    <input
-                      type="text"
-                      placeholder="Search nodes..."
-                      value={searchQuery}
-                      onChange={(e) => handleSearch(e.target.value)}
-                      className="t-mono-xs"
-                      style={{
-                        width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--line)',
-                        borderRadius: '4px', color: 'var(--ink)', padding: '4px 6px', marginBottom: '8px',
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                    <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
-                      <button onClick={() => setAllTypes(true)} className="t-mono-xs" style={{ background: 'transparent', border: '1px solid var(--line)', borderRadius: '3px', color: 'var(--ink-dim)', padding: '2px 6px', cursor: 'pointer', fontSize: '10px' }}>All</button>
-                      <button onClick={() => setAllTypes(false)} className="t-mono-xs" style={{ background: 'transparent', border: '1px solid var(--line)', borderRadius: '3px', color: 'var(--ink-dim)', padding: '2px 6px', cursor: 'pointer', fontSize: '10px' }}>None</button>
-                    </div>
-                    {allTypes.map(type => (
-                      <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={activeTypes.has(type)}
-                          onChange={() => toggleType(type)}
-                        />
-                        <span
-                          className="t-mono-xs"
-                          style={{ color: NODE_COLORS[type] ?? 'var(--ink-dim)', fontSize: '11px' }}
-                        >
-                          {type} ({typeCounts[type]})
-                        </span>
-                      </label>
-                    ))}
-                  </>
-                )}
               </div>
             )}
           </div>
         </div>
 
-        {/* Detail Panel (keep your existing) */}
+        {/* RIGHT: NODE DETAILS */}
+        <aside className={styles.detailPanel}>
+          {loading ? (
+            <div className={styles.detailHeader}>
+              <span className="t-label">Node Details</span>
+              <p className="t-body-sm" style={{ color: 'var(--ink-ghost)', marginTop: 10 }}>Loading memory graph...</p>
+            </div>
+          ) : selectedNode ? (
+            <>
+              <div className={styles.detailHeader}>
+                <span className="t-label">Node Details</span>
+                <h2 className="t-heading" style={{ color: 'var(--ink)', marginTop: 8 }}>{selectedNode.label}</h2>
+              </div>
+
+              <div className={styles.detailSection}>
+                <span className="t-label" style={{ display: 'block', marginBottom: 8 }}>Identifier</span>
+                <span className="bp-tag">#{selectedNode.id.toUpperCase()}</span>
+              </div>
+
+              <div className={styles.detailSection}>
+                <span className="t-label" style={{ display: 'block', marginBottom: 8 }}>Type</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <span className={styles.filterDot} style={{ background: NODE_COLORS[selectedNode.type] ?? 'var(--ink-dim)', color: NODE_COLORS[selectedNode.type] ?? 'var(--ink-dim)' }} />
+                  <span className="t-mono-sm" style={{ color: 'var(--ink)' }}>{selectedNode.type}</span>
+                </span>
+              </div>
+
+              <div className={styles.detailSection}>
+                <span className="t-label" style={{ display: 'block', marginBottom: 8 }}>Connections</span>
+                {connections.length === 0 ? (
+                  <p className="t-body-sm" style={{ color: 'var(--ink-ghost)' }}>No mapped connections.</p>
+                ) : connections.map(c => (
+                  <div key={c.id} className={styles.connItem} onClick={() => setSelected(c.id)}>
+                    {c.direction === 'out' ? '→' : '←'} {c.label}
+                    {c.edgeLabel ? <span style={{ color: 'var(--ink-ghost)' }}> · {c.edgeLabel}</span> : null}
+                  </div>
+                ))}
+              </div>
+
+              <div className={styles.detailSection} style={{ borderBottom: 'none' }}>
+                <span className="t-label" style={{ display: 'block', marginBottom: 8 }}>Thought Stream</span>
+                <div className={styles.thoughtStream}>
+                  <div className={styles.thoughtLine}>&gt; Node type: {selectedNode.type}</div>
+                  <div className={styles.thoughtLine}>&gt; {connections.length} connection{connections.length === 1 ? '' : 's'} mapped</div>
+                  <div className={styles.thoughtLine}>&gt; Source: {isRealGraph ? 'Cognee LLM graph extraction' : 'Local vector index'}</div>
+                </div>
+              </div>
+
+              <div className={styles.detailFooter}>
+                <Link to={`/chat/${repoId}`} className="btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>
+                  Ask about this node →
+                </Link>
+              </div>
+            </>
+          ) : (
+            <div className={styles.detailHeader}>
+              <span className="t-label">Node Details</span>
+              <p className="t-body-sm" style={{ color: 'var(--ink-ghost)', marginTop: 10 }}>Select a node to inspect its connections.</p>
+            </div>
+          )}
+        </aside>
 
       </div>
     </div>
