@@ -7,6 +7,7 @@ class IngestRequest(BaseModel):
     include_prs: bool = True
     include_issues: bool = True
     graph_mode: bool = False   # False = fast/local vector mode (demo default), True = full Cognee graph (needs LLM quota)
+    llm_provider: str = "groq"  # "groq" | "gemini" | "ollama" — only used when graph_mode=True
 
 class IngestStatus(BaseModel):
     repo_id: str

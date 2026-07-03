@@ -24,7 +24,7 @@ export default function AnalyzePage() {
   const [includePrs, setPrs]              = useState(true)
   const [includeIssues, setIssues]        = useState(true)
   const [graphMode, setGraphMode]         = useState(false)   // false = fast vector mode (default)
-  const [llmProvider, setLlmProvider]     = useState<'ollama' | 'groq'>('ollama')   // only relevant when graphMode=true
+  const [llmProvider, setLlmProvider]     = useState<'groq' | 'gemini' | 'ollama'>('gemini')   // only relevant when graphMode=true — gemini/groq work on the deployed backend, ollama only works if it's running on your own machine
   const [phase, setPhase]                 = useState<Phase>('input')
   const [status, setStatus]               = useState<IngestStatus | null>(null)
   const [stepStates, setStepStates]       = useState<StepState[]>(Array(5).fill('idle'))
@@ -153,20 +153,25 @@ export default function AnalyzePage() {
                   : 'Embeds and indexes everything locally for instant semantic search. No LLM calls required.'}
               </p>
               {graphMode && (
+                <p className="t-body-sm" style={{ color: 'var(--warn, #b8860b)', marginTop: 6, maxWidth: 480 }}>
+                  ⚠ Larger repos can take several minutes and may pause/retry if the provider's free-tier rate limit is hit — that's expected, not a bug. Prefer instant results? Switch back to Fast Vector Mode above.
+                </p>
+              )}
+              {graphMode && (
                 <div style={{ marginTop: 12 }}>
                   <span className="t-mono-xs" style={{ color: 'var(--ink-dim)' }}>LLM Provider:</span>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
                     <button
                       type="button"
-                      onClick={() => setLlmProvider('ollama')}
+                      onClick={() => setLlmProvider('gemini')}
                       className="t-mono-xs"
                       style={{
-                        border: `1px solid ${llmProvider === 'ollama' ? 'var(--accent)' : 'var(--line)'}`,
-                        color: llmProvider === 'ollama' ? 'var(--accent)' : 'var(--ink-dim)',
+                        border: `1px solid ${llmProvider === 'gemini' ? 'var(--accent)' : 'var(--line)'}`,
+                        color: llmProvider === 'gemini' ? 'var(--accent)' : 'var(--ink-dim)',
                         background: 'transparent', borderRadius: 4, padding: '4px 10px', cursor: 'pointer',
                       }}
                     >
-                      Ollama (local, reliable, no rate limit)
+                      Gemini (works on deployed server, generous free tier)
                     </button>
                     <button
                       type="button"
@@ -178,13 +183,25 @@ export default function AnalyzePage() {
                         background: 'transparent', borderRadius: 4, padding: '4px 10px', cursor: 'pointer',
                       }}
                     >
-                      Groq (works anywhere, rate-limited)
+                      Groq (works on deployed server, tighter rate limit)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLlmProvider('ollama')}
+                      className="t-mono-xs"
+                      style={{
+                        border: `1px solid ${llmProvider === 'ollama' ? 'var(--accent)' : 'var(--line)'}`,
+                        color: llmProvider === 'ollama' ? 'var(--accent)' : 'var(--ink-dim)',
+                        background: 'transparent', borderRadius: 4, padding: '4px 10px', cursor: 'pointer',
+                      }}
+                    >
+                      Ollama (local dev only)
                     </button>
                   </div>
                   <p className="t-body-sm" style={{ color: 'var(--ink-dim)', marginTop: 6, maxWidth: 480 }}>
-                    {llmProvider === 'ollama'
-                      ? 'Requires Ollama running locally (localhost:11434). Not available on a deployed server.'
-                      : "Groq's free-tier rate limit makes extraction unreliable past a handful of chunks — expect retries or partial graphs."}
+                    {llmProvider === 'gemini' && "Runs on Google's Gemini API from wherever the backend is deployed. Best default for the hosted app — no local machine required."}
+                    {llmProvider === 'groq' && "Runs on Groq's API from wherever the backend is deployed. Free-tier rate limits can make extraction slow or partial on larger repos."}
+                    {llmProvider === 'ollama' && 'Only works if Ollama is running on the same machine as the backend process itself. On the Vercel/Render deployment this will fail — use this only when you run the backend locally.'}
                   </p>
                 </div>
               )}

@@ -11,9 +11,13 @@ pydantic-settings>=2.2.1
 python-dotenv>=1.0.1
 
 # --- Knowledge graph / memory --------------------------------------------
-cognee==1.2.2
+# fastembed extra: Full Graph Mode now embeds via fastembed too, not just
+# Fast Mode's local_memory.py. groq extra: Cognee's own LiteLLM plumbing
+# for the groq LLM_PROVIDER. Gemini needs no extra — it goes through
+# LiteLLM's default openai-compatible path.
+cognee[groq,fastembed]==1.2.2
 groq>=0.8.0
 
-# --- Local vector embeddings (graph_mode=False fast path) ---------------
+# --- Local vector embeddings (graph_mode=False fast path + Full Graph Mode embeddings) ---
 fastembed>=0.3.0
 numpy>=1.26.0

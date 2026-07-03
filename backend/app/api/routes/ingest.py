@@ -55,6 +55,7 @@ async def run_ingestion(rid: str, req: IngestRequest):
         # Fast Mode: embed + store locally, zero LLM calls, instant, reliable.
         # Full Graph Mode: route through real Cognee add()+cognify() pipeline.
         if req.graph_mode:
+            await cognee_service.setup(provider=req.llm_provider)
             stored = await cognee_service.remember_chunks(file_chunks, dataset=rid, graph_mode=req.graph_mode)
         else:
             stored = await local_memory.store_chunks(file_chunks, dataset=rid)

@@ -16,29 +16,68 @@ logger = logging.getLogger(__name__)
 # or change the default here.
 # ──────────────────────────────────────────────────────────────────────────
 DEFAULT_GRAPH_MODE = False
+DEFAULT_LLM_PROVIDER = "groq"  # deployed-safe default; "ollama" only works when the backend itself has Ollama running
 
 
-async def setup():
+def _configure_embeddings():
     """
-    Configure Cognee on startup to use local Ollama for both LLM and
-    embeddings. cognify() (used only in Full Graph Mode) issues many
-    sequential LLM calls per document, which blew through Groq's free-tier
-    rate limit and meant graph_mode=True had never actually completed.
-    Ollama has no rate limit, so this is the reliable engine for that path.
-    Chat synthesis (services/synthesis.py) still uses Groq directly — this
-    change does not affect it.
+    Embeddings always go through fastembed: local, in-process, ONNX-based,
+    no network call and no rate limit per chunk. This is the same engine
+    Fast Mode already uses, so it needs no extra API key and works
+    identically on a laptop or on Render. Routing embeddings through
+    Ollama/Groq/Gemini instead was the main reason Full Graph Mode kept
+    timing out or hitting rate limits — that was N calls per chunk before
+    cognify() even started.
     """
-    os.environ["LLM_PROVIDER"] = "ollama"
-    os.environ["LLM_MODEL"] = "llama3.1:8b"  # no "ollama/" prefix — Cognee's OllamaAPIAdapter forwards this literally to Ollama's API
-    os.environ["LLM_ENDPOINT"] = "http://localhost:11434/v1"
-    os.environ["LLM_API_KEY"] = "ollama"  # dummy value, Cognee requires non-empty
-    os.environ["EMBEDDING_PROVIDER"] = "ollama"
-    os.environ["EMBEDDING_MODEL"] = "nomic-embed-text"
-    os.environ["EMBEDDING_ENDPOINT"] = "http://localhost:11434/api/embed"
-    os.environ["EMBEDDING_DIMENSIONS"] = "768"
-    os.environ["HUGGINGFACE_TOKENIZER"] = "nomic-ai/nomic-embed-text-v1.5"
+    os.environ["EMBEDDING_PROVIDER"] = "fastembed"
+    os.environ["EMBEDDING_MODEL"] = "sentence-transformers/all-MiniLM-L6-v2"
+    os.environ["EMBEDDING_DIMENSIONS"] = "384"
+    os.environ.pop("EMBEDDING_ENDPOINT", None)
+    os.environ.pop("HUGGINGFACE_TOKENIZER", None)
+
+
+async def setup(provider: str = DEFAULT_LLM_PROVIDER):
+    """
+    Configure Cognee's LLM + embedding providers for this process.
+    Called per-ingest (not just at startup) so `provider` can change
+    per request based on what the frontend sent.
+
+    provider="groq"   -> cloud, reachable from any deployment, uses the
+                          existing GROQ_API_KEY. Rate-limited on the free
+                          tier but works everywhere, including Render.
+    provider="gemini"  -> cloud, uses GOOGLE_API_KEY (already in Settings,
+                          previously unused). More generous free-tier
+                          quota than Groq — best default for a deployed
+                          Full Graph Mode run.
+    provider="ollama"  -> local only. Only works if Ollama is actually
+                          running on the same machine as this backend
+                          process (i.e. local dev, not Render/Vercel).
+    """
+    _configure_embeddings()
+
+    if provider == "ollama":
+        os.environ["LLM_PROVIDER"] = "ollama"
+        os.environ["LLM_MODEL"] = "llama3.1:8b"
+        os.environ["LLM_ENDPOINT"] = os.environ.get("OLLAMA_ENDPOINT", "http://localhost:11434/v1")
+        os.environ["LLM_API_KEY"] = "ollama"  # dummy value, Cognee requires non-empty
+        logger.info("[COGNEE] LLM provider: ollama (local-only, %s)", os.environ["LLM_ENDPOINT"])
+
+    elif provider == "gemini":
+        os.environ["LLM_PROVIDER"] = "gemini"
+        os.environ["LLM_MODEL"] = "gemini/gemini-2.0-flash"
+        os.environ["LLM_API_KEY"] = settings.GOOGLE_API_KEY
+        os.environ.pop("LLM_ENDPOINT", None)
+        logger.info("[COGNEE] LLM provider: gemini (gemini-2.0-flash)")
+
+    else:  # groq (default)
+        os.environ["LLM_PROVIDER"] = "groq"
+        os.environ["LLM_MODEL"] = "groq/llama-3.3-70b-versatile"
+        os.environ["LLM_API_KEY"] = settings.GROQ_API_KEY
+        os.environ.pop("LLM_ENDPOINT", None)
+        logger.info("[COGNEE] LLM provider: groq (llama-3.3-70b-versatile)")
+
     os.environ["COGNEE_SKIP_CONNECTION_TEST"] = "true"
-    logger.info("[COGNEE] Setup complete (Ollama: llama3.1:8b + nomic-embed-text)")
+    logger.info("[COGNEE] Setup complete (provider=%s, embeddings=fastembed)", provider)
 
 
 async def remember_chunks(chunks: list[str], dataset: str, graph_mode: bool = DEFAULT_GRAPH_MODE) -> int:
