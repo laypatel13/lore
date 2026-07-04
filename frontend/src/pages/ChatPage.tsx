@@ -3,6 +3,7 @@ import { useParams, Link } from '@/lib/router-compat'
 import NavBar from '../components/layout/NavBar'
 import { api } from '../api/client'
 import type { Message, MemoryStats, Source } from '../types'
+import { renderLiteMarkdown } from '../lib/markdownLite'
 import styles from './ChatPage.module.css'
 
 const SUGGESTIONS = [

@@ -96,6 +96,38 @@ def cloud_status() -> dict:
     return dict(_cloud_status)
 
 
+def _bust_cognee_config_cache():
+    """
+    CRITICAL: Cognee's own get_llm_config() and get_embedding_config() are
+    each decorated with a bare @lru_cache (no arguments) — meaning each one
+    reads os.environ exactly ONCE per process, the very first time anything
+    calls it, and returns that same frozen object forever afterward.
+
+    This means mutating os.environ in setup() below is NOT enough on its
+    own: if Cognee's config was already read once earlier in this process
+    (e.g. at app startup, or from a leftover LLM_PROVIDER=ollama in .env
+    before multi-provider support existed), every subsequent setup() call
+    with a different provider was silently a no-op — the actual LLM calls
+    kept going to whatever was cached first, regardless of what the logs
+    claimed. This was caught by noticing cognify() logs showing
+    OllamaAPIAdapter/llama3.1:8b even after setup() logged "provider=gemini".
+
+    Calling .cache_clear() forces Cognee to reconstruct both configs fresh
+    from the CURRENT os.environ on next access, actually applying whatever
+    setup() just set.
+    """
+    try:
+        from cognee.infrastructure.llm.config import get_llm_config
+        get_llm_config.cache_clear()
+    except Exception as e:
+        logger.warning(f"[COGNEE] could not clear LLM config cache: {e}")
+    try:
+        from cognee.infrastructure.databases.vector.embeddings.config import get_embedding_config
+        get_embedding_config.cache_clear()
+    except Exception as e:
+        logger.warning(f"[COGNEE] could not clear embedding config cache: {e}")
+
+
 def _configure_embeddings():
     """
     Embeddings always go through fastembed: local, in-process, ONNX-based,
@@ -122,6 +154,18 @@ async def setup(provider: str = DEFAULT_LLM_PROVIDER):
     provider="groq"   -> cloud, reachable from any deployment, uses the
                           existing GROQ_API_KEY. Rate-limited on the free
                           tier but works everywhere, including Render.
+                          IMPORTANT: Cognee's own LLMProvider enum has no
+                          native "groq" member (only openai, ollama,
+                          anthropic, custom, gemini, mistral, azure,
+                          bedrock, llama_cpp) — this was silently broken
+                          the entire time, masked by the config-cache bug
+                          (see _bust_cognee_config_cache above) which
+                          meant real calls never actually reached the
+                          provider-validation line until that was fixed.
+                          Routed through LLMProvider.CUSTOM instead, which
+                          Cognee builds specifically for any OpenAI-
+                          compatible endpoint — Groq's API is exactly
+                          that, at https://api.groq.com/openai/v1.
     provider="gemini"  -> cloud, uses GOOGLE_API_KEY (already in Settings,
                           previously unused). More generous free-tier
                           quota than Groq — best default for a deployed
@@ -152,14 +196,19 @@ async def setup(provider: str = DEFAULT_LLM_PROVIDER):
         os.environ.pop("LLM_ENDPOINT", None)
         logger.info("[COGNEE] LLM provider: gemini (gemini-2.0-flash)")
 
-    else:  # groq (default)
-        os.environ["LLM_PROVIDER"] = "groq"
-        os.environ["LLM_MODEL"] = "groq/llama-3.3-70b-versatile"
+    else:  # groq (default) — routed through CUSTOM, see docstring above
+        os.environ["LLM_PROVIDER"] = "custom"
+        # litellm needs a provider-prefixed model name to know HOW to route
+        # a custom-base-URL request — passing the endpoint alone isn't
+        # enough; it still needs the prefix hint, same as any other
+        # OpenAI-compatible custom endpoint would.
+        os.environ["LLM_MODEL"] = "openai/llama-3.3-70b-versatile"
+        os.environ["LLM_ENDPOINT"] = "https://api.groq.com/openai/v1"
         os.environ["LLM_API_KEY"] = settings.GROQ_API_KEY
-        os.environ.pop("LLM_ENDPOINT", None)
-        logger.info("[COGNEE] LLM provider: groq (llama-3.3-70b-versatile)")
+        logger.info("[COGNEE] LLM provider: groq via custom endpoint (llama-3.3-70b-versatile)")
 
     os.environ["COGNEE_SKIP_CONNECTION_TEST"] = "true"
+    _bust_cognee_config_cache()
     logger.info("[COGNEE] Setup complete (provider=%s, embeddings=fastembed)", provider)
 
 
@@ -224,6 +273,21 @@ async def remember(text: str, dataset: str, graph_mode: bool = DEFAULT_GRAPH_MOD
         raise
 
 
+def _field(result, key: str, default=None):
+    """
+    cognee.recall() returns different shapes depending on query_type:
+    CHUNKS results are objects (attribute access, e.g. r.text), but
+    GRAPH_COMPLETION results are plain dicts. getattr(dict, "text", None)
+    silently returns None on a dict — it does NOT look up dict keys — so
+    without this check the code fell through to str(r), dumping the
+    entire raw dict (kind/search_type/score/dataset_id/raw/structured/...)
+    into the chat as if it were the answer. This handles both shapes.
+    """
+    if isinstance(result, dict):
+        return result.get(key, default)
+    return getattr(result, key, default)
+
+
 async def recall(question: str, dataset: str, graph_mode: bool = DEFAULT_GRAPH_MODE) -> tuple[str, list[Source]]:
     """
     Query Cognee memory.
@@ -252,16 +316,23 @@ async def recall(question: str, dataset: str, graph_mode: bool = DEFAULT_GRAPH_M
     answer_parts = []
 
     for r in results[:6]:
-        text = getattr(r, "text", None) or str(r)
+        # GRAPH_COMPLETION dicts hold the clean synthesized answer under
+        # "text" (occasionally nested one level under "raw" -> "value" —
+        # fall back to that before ever resorting to str(r)).
+        text = (
+            _field(r, "text")
+            or _field(_field(r, "raw", {}) or {}, "value")
+            or str(r)
+        )
         answer_parts.append(text)
         sources.append(Source(
-            type=getattr(r, "type", "document"),
-            id=str(getattr(r, "id", "unknown")),
+            type=_field(r, "type") or _field(r, "kind", "document"),
+            id=str(_field(r, "id") or _field(r, "dataset_id", "unknown")),
             text=text[:200],
         ))
 
     logger.info(f"[COGNEE] recall() returned {len(results)} results, using top {len(sources)}")
-    answer = "\n\n".join(answer_parts)
+    answer = "\n\n".join(dict.fromkeys(answer_parts))  # de-dupe identical parts, preserve order
     return answer, sources
 
 
@@ -283,22 +354,41 @@ async def improve(dataset: str, graph_mode: bool = DEFAULT_GRAPH_MODE):
 
 async def get_graph(dataset: str) -> tuple[list, list]:
     """
-    Retrieve the raw Cognee graph (nodes + edges) for visualization.
-    Only meaningful for repos ingested with graph_mode=True — Fast Mode
-    never calls cognify(), so there's no graph to fetch.
+    Retrieve the raw Cognee graph (nodes + edges) for visualization, scoped
+    to exactly one dataset (repo).
 
-    Note: Cognee's local graph engine (ladybug/kuzu) does not filter
-    get_graph_data() by dataset — it returns the full local graph store.
-    Fine for a single-repo demo; if multiple graph_mode repos are ingested
-    in the same session, this will return their combined graph.
+    IMPORTANT FIX: get_graph_engine().get_graph_data() with no additional
+    context returns whatever the graph engine's *current* database context
+    happens to be — not "the graph for this dataset". In testing, ingesting
+    two different repos in the same backend process and viewing each one's
+    /memory page returned the IDENTICAL node/edge count for both — the
+    second repo's page was silently showing the first repo's graph. This
+    matches Cognee's own visualize_graph() (cognee/api/v1/visualize/
+    visualize.py), which never calls the graph engine directly either — it
+    first resolves the dataset via get_authorized_existing_datasets(), then
+    wraps the actual fetch in set_database_global_context_variables(dataset.id,
+    dataset.owner_id), which points the engine at that dataset's own
+    database before reading from it. We do the same here instead of the
+    bare get_graph_engine().get_graph_data() call this used to make.
     """
     from cognee.infrastructure.databases.graph import get_graph_engine
+    from cognee.modules.data.methods import get_authorized_existing_datasets
+    from cognee.modules.users.methods import get_default_user
+    from cognee.context_global_variables import set_database_global_context_variables
 
     logger.info(f"[COGNEE] get_graph() dataset='{dataset}'")
     try:
-        graph_engine = await get_graph_engine()
-        nodes, edges = await graph_engine.get_graph_data()
-        logger.info(f"[COGNEE] get_graph() returned {len(nodes)} nodes, {len(edges)} edges")
+        user = await get_default_user()
+        resolved = await get_authorized_existing_datasets([dataset], "read", user)
+        if not resolved:
+            logger.warning(f"[COGNEE] get_graph() no dataset resolved for '{dataset}' — returning empty graph")
+            return [], []
+
+        async with set_database_global_context_variables(resolved[0].id, resolved[0].owner_id):
+            graph_engine = await get_graph_engine()
+            nodes, edges = await graph_engine.get_graph_data()
+
+        logger.info(f"[COGNEE] get_graph() returned {len(nodes)} nodes, {len(edges)} edges (scoped to '{dataset}')")
         return nodes, edges
     except Exception as e:
         logger.error(f"[COGNEE] get_graph() ERROR: {e}")
