@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
 /* ─── TOKENS ─────────────────────────────────────────────── */
 :root {
@@ -19,9 +19,10 @@
   --warn:       #FBBF24;
 
   --radius-none: 0px;
-  --font-display: 'Syne', sans-serif;
-  --font-body:    'Inter', sans-serif;
-  --font-mono:    'JetBrains Mono', monospace;
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-body:    'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  /* Alias, not a third typeface — see head.css note. */
+  --font-mono:    'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
 
   --transition: 0.18s ease;
 }

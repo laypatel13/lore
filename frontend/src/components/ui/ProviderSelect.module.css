@@ -1,0 +1,183 @@
+.root {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+}
+
+/* ─── TRIGGER ────────────────────────────────────────────── */
+.trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-input);
+  padding: 12px 16px;
+  cursor: pointer;
+  backdrop-filter: blur(16px) saturate(140%);
+  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+  text-align: left;
+}
+
+.trigger:hover {
+  border-color: var(--border-mid);
+  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+}
+
+.trigger:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(242,241,237,0.12);
+}
+
+.triggerOpen {
+  border-color: var(--border-mid);
+  box-shadow: var(--shadow-md);
+}
+
+.triggerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.triggerLabel {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+
+.triggerDesc {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--ink-dim);
+  transition: transform var(--transition);
+}
+
+.triggerOpen .chevron {
+  transform: rotate(180deg);
+  color: var(--ink);
+}
+
+/* ─── PANEL ──────────────────────────────────────────────── */
+/* Rendered via portal at document.body (position set inline as
+   `fixed`) so it escapes the SpecBox card's `overflow: hidden` and
+   always floats above every other surface on the page. */
+.panelWrap {
+  z-index: 1000;
+  transform-origin: top center;
+  animation: panelIn 140ms ease-out;
+}
+
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.panel {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  background: var(--surface-glass);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(24px) saturate(160%);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.panel:focus { outline: none; }
+
+/* ─── OPTION ─────────────────────────────────────────────── */
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: calc(var(--r-panel) - 6px);
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.option + .option { margin-top: 2px; }
+
+.optionActive {
+  background: rgba(255,255,255,0.07);
+}
+
+.optionSelected {
+  background: rgba(255,255,255,0.05);
+}
+
+.optionSelected.optionActive {
+  background: rgba(255,255,255,0.09);
+}
+
+.optionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.optionLabel {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+
+.optionDesc {
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-dim);
+}
+
+.check {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.optionSelected .check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (max-width: 640px) {
+  .root { max-width: 100%; }
+  .triggerDesc { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panelWrap { animation: none !important; }
+  .chevron, .option, .check {
+    transition: none !important;
+  }
+}

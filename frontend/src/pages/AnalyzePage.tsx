@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from '@/lib/router-compat'
 import NavBar from '../components/layout/NavBar'
 import SpecBox from '../components/ui/SpecBox'
+import ProviderSelect from '../components/ui/ProviderSelect'
 import { api } from '../api/client'
 import type { IngestStatus } from '../types'
 import styles from './AnalyzePage.module.css'
@@ -16,6 +17,12 @@ const STEPS = [
 
 type StepState = 'idle' | 'active' | 'done'
 type Phase     = 'input' | 'ingesting' | 'done' | 'error'
+
+const PROVIDER_OPTIONS = [
+  { value: 'gemini', label: 'Gemini',  description: 'Works on the deployed server · generous free tier' },
+  { value: 'groq',   label: 'Groq',    description: 'Works on the deployed server · tighter rate limit' },
+  { value: 'ollama', label: 'Ollama',  description: 'Local dev only · needs Ollama on this machine' },
+] as const
 
 export default function AnalyzePage() {
   const navigate = useNavigate()
@@ -158,47 +165,13 @@ export default function AnalyzePage() {
                 </p>
               )}
               {graphMode && (
-                <div style={{ marginTop: 12 }}>
-                  <span className="t-mono-xs" style={{ color: 'var(--ink-dim)' }}>LLM Provider:</span>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      onClick={() => setLlmProvider('gemini')}
-                      className="t-mono-xs"
-                      style={{
-                        border: `1px solid ${llmProvider === 'gemini' ? 'var(--accent)' : 'var(--line)'}`,
-                        color: llmProvider === 'gemini' ? 'var(--accent)' : 'var(--ink-dim)',
-                        background: 'transparent', borderRadius: 4, padding: '4px 10px', cursor: 'pointer',
-                      }}
-                    >
-                      Gemini (works on deployed server, generous free tier)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setLlmProvider('groq')}
-                      className="t-mono-xs"
-                      style={{
-                        border: `1px solid ${llmProvider === 'groq' ? 'var(--accent)' : 'var(--line)'}`,
-                        color: llmProvider === 'groq' ? 'var(--accent)' : 'var(--ink-dim)',
-                        background: 'transparent', borderRadius: 4, padding: '4px 10px', cursor: 'pointer',
-                      }}
-                    >
-                      Groq (works on deployed server, tighter rate limit)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setLlmProvider('ollama')}
-                      className="t-mono-xs"
-                      style={{
-                        border: `1px solid ${llmProvider === 'ollama' ? 'var(--accent)' : 'var(--line)'}`,
-                        color: llmProvider === 'ollama' ? 'var(--accent)' : 'var(--ink-dim)',
-                        background: 'transparent', borderRadius: 4, padding: '4px 10px', cursor: 'pointer',
-                      }}
-                    >
-                      Ollama (local dev only)
-                    </button>
-                  </div>
-                  <p className="t-body-sm" style={{ color: 'var(--ink-dim)', marginTop: 6, maxWidth: 480 }}>
+                <div style={{ marginTop: 16 }}>
+                  <ProviderSelect
+                    value={llmProvider}
+                    onChange={(v) => setLlmProvider(v as typeof llmProvider)}
+                    options={[...PROVIDER_OPTIONS]}
+                  />
+                  <p className="t-body-sm" style={{ color: 'var(--ink-dim)', marginTop: 10, maxWidth: 480 }}>
                     {llmProvider === 'gemini' && "Runs on Google's Gemini API from wherever the backend is deployed. Best default for the hosted app — no local machine required."}
                     {llmProvider === 'groq' && "Runs on Groq's API from wherever the backend is deployed. Free-tier rate limits can make extraction slow or partial on larger repos."}
                     {llmProvider === 'ollama' && 'Only works if Ollama is running on the same machine as the backend process itself. On the Vercel/Render deployment this will fail — use this only when you run the backend locally.'}

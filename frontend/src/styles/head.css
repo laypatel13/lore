@@ -1,8 +1,9 @@
 /* ─────────────────────────────────────────────────────────────
    LORE — Premium Intelligence Design System
    Deep charcoal/black surfaces, glass layering, editorial type.
-   Fraunces for display, Space Grotesk for UI, JetBrains Mono
-   for code/data. No backend logic touched — tokens + utility
+   Fraunces for display, Space Grotesk for everything else —
+   body copy, labels, and tracked-out data/metadata. Strictly a
+   two-font system. No backend logic touched — tokens + utility
    classes only, so every existing component keeps working.
    ────────────────────────────────────────────────────────────── */
 
@@ -50,7 +51,10 @@
 
   --font-display: 'Fraunces', ui-serif, Georgia, serif;
   --font-body:    'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
-  --font-mono:    'JetBrains Mono', monospace;
+  /* Kept as an alias, not a third typeface: components that reference
+     var(--font-mono) for tracked-out labels/data get Space Grotesk too.
+     Lore is strictly a two-font system — Fraunces + Space Grotesk. */
+  --font-mono:    'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --transition: 200ms var(--ease);
@@ -152,9 +156,9 @@ body {
   color: var(--ink-dim);
 }
 
-.t-mono    { font-family: var(--font-mono); font-size: 13px; }
-.t-mono-sm { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.03em; }
-.t-mono-xs { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; }
+.t-mono    { font-family: var(--font-mono); font-size: 13px; font-weight: 500; }
+.t-mono-sm { font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.04em; }
+.t-mono-xs { font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; }
 
 /* ─── LAYOUT ─────────────────────────────────────────────── */
 .container {
