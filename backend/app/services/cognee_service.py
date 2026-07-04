@@ -18,6 +18,83 @@ logger = logging.getLogger(__name__)
 DEFAULT_GRAPH_MODE = False
 DEFAULT_LLM_PROVIDER = "groq"  # deployed-safe default; "ollama" only works when the backend itself has Ollama running
 
+# Tracks whether we've already tried connecting to Cognee Cloud this
+# process, and whether it succeeded. Module-level so we only attempt the
+# connection once per process instead of once per request.
+_cloud_status = {"attempted": False, "connected": False}
+
+
+async def _maybe_connect_cloud() -> bool:
+    """
+    Optional, fully additive Cognee Cloud connection via cognee.serve().
+
+    This is a no-op unless BOTH COGNEE_CLOUD_URL and COGNEE_API_KEY are
+    set. On the current Render deployment neither is set, so calling this
+    changes nothing about the existing self-hosted pipeline — it returns
+    False immediately and every downstream function behaves exactly as it
+    does today.
+
+    IMPORTANT: cognee.serve() can succeed at merely creating a remote
+    client even when the instance is unreachable (we saw this in testing
+    — it logged "Connected" and then every real add() call failed with a
+    connection error). Once a remote client exists, Cognee routes ALL
+    subsequent add()/cognify()/etc. calls to it unconditionally — there's
+    no automatic per-call fallback. So we don't trust serve() alone: we
+    immediately run one real, cheap operation to confirm the remote side
+    actually works. If that fails, we explicitly disconnect and revert to
+    the self-hosted pipeline before any real ingestion touches it.
+
+    Tried once per process, not per-request, since cognee.serve() opens a
+    persistent connection rather than something you'd redo per call.
+    """
+    if _cloud_status["attempted"]:
+        return _cloud_status["connected"]
+    _cloud_status["attempted"] = True
+
+    if not settings.COGNEE_CLOUD_URL or not settings.COGNEE_API_KEY:
+        logger.info("[COGNEE] Cloud not configured (COGNEE_CLOUD_URL/COGNEE_API_KEY unset) — using self-hosted pipeline")
+        return False
+
+    try:
+        await cognee.serve(url=settings.COGNEE_CLOUD_URL, api_key=settings.COGNEE_API_KEY)
+        logger.info("[COGNEE] cognee.serve() accepted — verifying with a real call before trusting it...")
+
+        # Real verification, not just "did serve() return without raising".
+        # 20s timeout so an unreachable host fails fast instead of hanging
+        # the whole ingest request.
+        import asyncio
+        await asyncio.wait_for(
+            cognee.remember("Lore cloud connectivity check", dataset_name="_lore_cloud_healthcheck"),
+            timeout=20,
+        )
+
+        _cloud_status["connected"] = True
+        logger.info("[COGNEE] Verified — Cognee Cloud is live at %s", settings.COGNEE_CLOUD_URL)
+        return True
+
+    except Exception as e:
+        _cloud_status["connected"] = False
+        logger.warning(
+            "[COGNEE] Cloud connection failed verification (%s) — "
+            "disconnecting and falling back to the self-hosted pipeline "
+            "for the rest of this process. This is non-fatal: ingestion "
+            "and chat continue exactly as before.", e
+        )
+        try:
+            if hasattr(cognee, "disconnect"):
+                await cognee.disconnect()
+                logger.info("[COGNEE] Disconnected remote client — back on the self-hosted pipeline")
+        except Exception as disconnect_error:
+            logger.warning("[COGNEE] disconnect() itself failed (%s) — proceeding anyway; "
+                            "self-hosted env vars set later in setup() take precedence regardless.", disconnect_error)
+        return False
+        return False
+
+
+def cloud_status() -> dict:
+    """Small introspection helper — e.g. to surface in a health check."""
+    return dict(_cloud_status)
+
 
 def _configure_embeddings():
     """
@@ -52,7 +129,13 @@ async def setup(provider: str = DEFAULT_LLM_PROVIDER):
     provider="ollama"  -> local only. Only works if Ollama is actually
                           running on the same machine as this backend
                           process (i.e. local dev, not Render/Vercel).
+
+    Also attempts an optional Cognee Cloud connection first (see
+    _maybe_connect_cloud() above) — this is a no-op unless you've set
+    COGNEE_CLOUD_URL/COGNEE_API_KEY, and everything below runs identically
+    whether that succeeds, fails, or is skipped entirely.
     """
+    await _maybe_connect_cloud()
     _configure_embeddings()
 
     if provider == "ollama":

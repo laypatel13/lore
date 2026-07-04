@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     LLM_API_KEY: str = ""
     GROQ_API_KEY: str = ""
     COGNEE_API_KEY: str = ""
+    COGNEE_CLOUD_URL: str = ""  # optional — only used if set, see cognee_service._maybe_connect_cloud()
     COGNEE_SKIP_CONNECTION_TEST: str = "true"
     APP_ENV: str = "development"
     CORS_ORIGINS: list[str] = [

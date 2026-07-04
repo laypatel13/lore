@@ -1,5 +1,5 @@
 <div align="center">
-<img src=".github/assets/LORE.png" alt="Lore Logo"  height="250px" width="250px">
+<img src=".github/assets/LORE.png" alt="Lore Logo" height="200px" width="200px">
 <br/>
 
 **Your Repo, Finally Explaining Itself.**

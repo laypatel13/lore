@@ -208,7 +208,80 @@ checklist this produced.
 
 ---
 
-## 5. Quick reference
+## 5. Experimental: Cognee Cloud (opt-in, self-fallback)
+
+Cognee 1.0 ships a managed hosted option — `cognee.serve(url=..., api_key=...)` —
+that routes the same `add`/`cognify`/`recall`/`improve`/`forget` calls
+through Cognee's infrastructure instead of the local SQLite/LanceDB/Kuzu
+stack this project uses by default. It's attractive here specifically
+because managed compute might sidestep the free-tier rate-limit pain
+described in Section 4 — but swapping the whole pipeline for something
+untested days before a deadline is exactly the kind of change that breaks
+a working demo for an unproven upside.
+
+So it's wired in as **fully additive and opt-in**, not a replacement:
+
+- `_maybe_connect_cloud()` in `cognee_service.py` only attempts a
+  connection if **both** `COGNEE_CLOUD_URL` and `COGNEE_API_KEY` are set.
+  Neither is set on the current Render deployment, so right now this
+  function returns `False` immediately and changes nothing — the app runs
+  exactly as documented in Sections 1-5 above.
+- If both are set but the connection fails for any reason (bad URL,
+  invalid key, cloud instance unreachable), it logs a warning once and
+  falls back to the self-hosted pipeline for the rest of that process.
+  It never raises — a broken cloud connection cannot take down ingestion
+  or chat.
+- The attempt happens once per process (inside `setup()`), not once per
+  request, since `cognee.serve()` opens a persistent connection rather
+  than something to redo on every call.
+
+**To try it**: set `COGNEE_CLOUD_URL` and `COGNEE_API_KEY` in your local
+`.env` first (never directly in Render's dashboard until it's actually
+been tested), run a Full Graph Mode ingest locally, and check the logs for
+either `"Verified — Cognee Cloud is live at ..."` or the fallback warning.
+Only promote the env vars to Render once you've confirmed it behaves the
+way you want against a real repo.
+
+### A real gap this caught, and how it was closed
+
+First test run: `cognee.serve()` logged `"Connected"` — but that only means
+it created a remote client, not that the remote side actually works. The
+very next real call (`cognee.add()`) failed on every single chunk. Because
+Cognee routes every operation to the remote client unconditionally once
+one exists, nothing caught this — the promised "falls back automatically"
+behavior didn't fire, because the failure happened one step later than
+where the safety net was checking.
+
+Fixed by making `_maybe_connect_cloud()` not trust `serve()` alone: it now
+runs one real `cognee.remember()` call immediately after connecting (with
+a 20s timeout so an unreachable host fails fast), and if *that* fails, it
+explicitly calls `cognee.disconnect()` and reverts before any real
+ingestion touches the remote client. Lesson: "the SDK call didn't raise"
+and "the remote side actually works" are different claims, and only the
+second one is safe to build a fallback on.
+
+### Known local gotcha: SSL certificate errors on macOS
+
+If you see `SSLCertVerificationError: unable to get local issuer
+certificate` when connecting, this is almost always a local Python
+installation issue, not a Cognee Cloud problem — specifically common with
+Python installed via the official python.org macOS installer, which
+doesn't hook into the system keychain for root certificates by default.
+Fix:
+
+```bash
+open "/Applications/Python 3.14/Install Certificates.command"
+```
+
+or, if that file doesn't exist for your version:
+
+```bash
+pip install --upgrade certifi
+export SSL_CERT_FILE=$(python3 -m certifi)
+export REQUESTS_CA_BUNDLE=$(python3 -m certifi)
+```
+
+## 6. Quick reference
 
 | Function | Wrapper | Runs when | Call sites |
 |---|---|---|---|
