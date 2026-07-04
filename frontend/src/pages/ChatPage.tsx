@@ -26,12 +26,22 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!repoId) return
-    api.chat.stats(repoId).then(setStats).catch(() => {})
-    setMessages([{
-      id: 'welcome', role: 'lore',
-      content: `Case opened. **Fast Local Vector Mode** active for \`${repoId}\`.\n\nI search files, commits, and metadata using local vector embeddings. Ask me anything about code history, structure, or changes.`,
-      timestamp: new Date(),
-    }])
+    api.chat.stats(repoId).then(s => {
+      setStats(s)
+      setMessages([{
+        id: 'welcome', role: 'lore',
+        content: s.graph_mode
+          ? `Case opened. **Full Graph Mode** active for \`${repoId}\`.\n\nI traverse a Cognee-built knowledge graph of entities and relationships. Ask me anything about code history, structure, or changes.`
+          : `Case opened. **Fast Local Vector Mode** active for \`${repoId}\`.\n\nI search files, commits, and metadata using local vector embeddings. Ask me anything about code history, structure, or changes.`,
+        timestamp: new Date(),
+      }])
+    }).catch(() => {
+      setMessages([{
+        id: 'welcome', role: 'lore',
+        content: `Case opened for \`${repoId}\`.\n\nAsk me anything about code history, structure, or changes.`,
+        timestamp: new Date(),
+      }])
+    })
   }, [repoId])
 
   useEffect(() => { 
@@ -135,11 +145,11 @@ export default function ChatPage() {
                     <div className={styles.loreMsgMeta}>
                       <span className={styles.loreBadge}>LORE</span>
                       <span className="t-mono-xs" style={{ color: 'var(--accent)', marginLeft: '8px' }}>
-                        Fast Local Vector Mode
+                        {stats?.graph_mode ? 'Full Graph Mode' : 'Fast Local Vector Mode'}
                       </span>
                       {msg.sources && msg.sources.length > 0 && (
                         <span className="t-mono-xs" style={{ color: 'var(--ink-ghost)', marginLeft: '12px' }}>
-                          Vector Search • {msg.sources.length} sources
+                          {stats?.graph_mode ? 'Graph Traversal' : 'Vector Search'} • {msg.sources.length} sources
                         </span>
                       )}
                     </div>
@@ -168,11 +178,11 @@ export default function ChatPage() {
               <div className={styles.loreMsg}>
                 <div className={styles.loreMsgMeta}>
                   <span className={styles.loreBadge}>LORE</span>
-                  <span className="t-mono-xs" style={{ color: 'var(--accent)', marginLeft: '8px' }}>Fast Local Vector Mode</span>
+                  <span className="t-mono-xs" style={{ color: 'var(--accent)', marginLeft: '8px' }}>{stats?.graph_mode ? 'Full Graph Mode' : 'Fast Local Vector Mode'}</span>
                 </div>
                 <div className={`bp-card ${styles.loreMsgBody}`}>
                   <div className={styles.loreMsgText} style={{ color: 'var(--ink-ghost)', fontStyle: 'italic' }}>
-                    Searching local vector store...
+                    {stats?.graph_mode ? 'Traversing knowledge graph...' : 'Searching local vector store...'}
                   </div>
                 </div>
               </div>
@@ -195,7 +205,9 @@ export default function ChatPage() {
               <button className={styles.sendBtn} onClick={() => send()} disabled={loading || !input.trim()}>→</button>
             </div>
             <div className="t-mono-xs" style={{ color: 'var(--ink-ghost)', marginTop: 8 }}>
-              Fast Local Vector Mode • Reliable • No graph extraction
+              {stats?.graph_mode
+                ? 'Full Graph Mode • Cognee knowledge graph • LLM-powered'
+                : 'Fast Local Vector Mode • Reliable • No graph extraction'}
             </div>
           </div>
         </div>

@@ -30,7 +30,7 @@ export default function NavBar({ repoId, repoName }: NavBarProps) {
       </div>
 
       <nav className={styles.navCenter}>
-        <span className="t-mono-sm" style={{ color: 'var(--accent)', fontWeight: '600', letterSpacing: '0.08em' }}>
+        <span className={styles.logoText} style={{ color: 'var(--accent)', fontWeight: '600', letterSpacing: '0.08em' }}>
           ASK YOUR CODEBASE WHY..?
         </span>
       </nav>
