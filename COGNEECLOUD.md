@@ -17,7 +17,7 @@ rest of this doc is what came out of actually trying to wire it in as a
 fix for the Groq/Gemini rate-limit pain instead of just another rewrite of
 the self-hosted pipeline.
 
-<img src=".github/assets/ERROR.png" alt="Error">
+<img src=".github/assets/ERROR.jpeg" alt="Error">
 
 ---
 
