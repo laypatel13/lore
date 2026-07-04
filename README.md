@@ -64,6 +64,7 @@ Built for the **WeMakeDevs "Hangover Part AI" Hackathon**.
 | **🧠 Cited Synthesis** | Groq Llama 3.1 turns retrieved chunks into clean prose with sources. |
 | **⚡ Fast Mode (Default)** | Local `fastembed` + cosine similarity — zero LLM calls for retrieval. |
 | **🕸️ Full Graph Mode** | Optional Cognee `add()` + `cognify()` for real entity-relationship graphs. |
+| **☁️ Cognee Cloud (Experimental)** | Opt-in `cognee.serve()` connection that offloads the graph pipeline to Cognee's managed infrastructure — additive, self-verifying, falls back to the self-hosted pipeline automatically if unavailable. See `COGNEECLOUD.md`. |
 | **📈 Live Job Status** | Real-time polling of files, chunks, commits, PRs, and issues. |
 | **🗑️ Memory Lifecycle** | Query, improve, and forget independently. |
 
@@ -101,35 +102,72 @@ flowchart LR
     style L fill:#000,color:#fff
 ```
 
+### ☁️ Cognee Cloud (experimental, opt-in)
+
+Full Graph Mode above runs on the self-hosted Cognee pipeline by default.
+There's also an **opt-in, additive** path to Cognee's managed hosted
+service via `cognee.serve()`, meant to sidestep the free-tier rate-limit
+ceiling that Groq/Gemini both impose on `cognify()`. It only activates if
+both `COGNEE_CLOUD_URL` and `COGNEE_API_KEY` are set — neither is set on
+the current deployment, so the app runs exactly as described above by
+default. The connection is verified with a real call before anything
+trusts it, and falls back silently to the self-hosted pipeline if it
+fails. Full story — including a real capacity outage we hit — in
+`COGNEECLOUD.md`.
+
 ---
 
 # 🏗 Architecture
 
-```text
-┌──────────────────────────┐
-│        Frontend          │
-│ React + TanStack Start   │
-└────────────┬─────────────┘
-             │
-             ▼
-┌──────────────────────────┐
-│        FastAPI API       │
-│  Ingestion & Retrieval   │
-└────────────┬─────────────┘
-             │
-    ┌────────┴────────┐
-    │                 │
-    ▼                 ▼
- Vector Store     Cognee Graph
- (Fast Mode)      (Graph Mode)
+```mermaid
+flowchart TB
+    subgraph Frontend
+        UI1["Analyze Page"]
+        UI2["Chat Page"]
+        UI3["Memory Page"]
+    end
 
-             │
-             ▼
-       Groq LLM Layer
-             │
-             ▼
-      Synthesized Answers
+    subgraph Backend["Backend — FastAPI"]
+        R1["/ingest"]
+        R2["/chat"]
+        S1["github_client"]
+        S2["processor"]
+        S3["local_memory"]
+        S4["cognee_service"]
+        S5["synthesis"]
+    end
+
+    GH["GitHub REST API"]
+    GQ["Groq API"]
+    GM["Gemini API"]
+    OL["Ollama\n(local dev only)"]
+    CG["Cognee — self-hosted\n(graph_mode=True)"]
+    CC["Cognee Cloud\n(opt-in, cognee.serve())"]
+
+    UI1 --> R1
+    UI2 --> R2
+    UI3 --> R2
+
+    R1 --> S1 --> GH
+    R1 --> S2
+    S2 --> S3
+    S2 --> S4
+
+    S4 --> CG
+    S4 -.opt-in, falls back on failure.-> CC
+    CG --> GQ
+    CG --> GM
+    CG -.local machine only.-> OL
+
+    R2 --> S3
+    R2 --> S5 --> GQ
+
+    style CC stroke-dasharray: 5 5
+    style OL stroke-dasharray: 5 5
 ```
+
+*Dashed borders mark paths that are opt-in (Cognee Cloud) or local-only
+(Ollama) — everything else runs the same locally and on the deployed app.*
 
 ---
 
@@ -162,6 +200,7 @@ flowchart LR
 | Groq (Llama 3.3 70B) | Chat answer synthesis (always) + optional Full Graph Mode extraction |
 | Google Gemini (2.0 Flash) | Optional Full Graph Mode extraction — recommended default on a deployed backend, more generous free tier than Groq |
 | Ollama | Optional Full Graph Mode extraction — **local development only**; requires Ollama running on the same machine as the backend process, so it isn't usable on a deployed Render/Vercel instance |
+| Cognee Cloud | **Experimental, opt-in.** Managed hosted alternative to the local pipeline via `cognee.serve()` — only activates if both `COGNEE_CLOUD_URL` and `COGNEE_API_KEY` are set; self-verifies the connection before trusting it and falls back automatically if it fails. Not enabled on the current deployment. See `COGNEECLOUD.md`. |
 
 ---
 
@@ -270,6 +309,8 @@ lore/
 │
 ├── README.md
 ├── COGNEE.md                      # Maps every Cognee call to its call site + why
+├── SETUP.md                        # Groq/Gemini/Ollama setup — what works locally vs. deployed
+├── COGNEECLOUD.md                  # Cognee Cloud: how the opt-in serve() fallback is wired, and its capacity-outage history
 ├── DEPLOYMENT.md                   # Render + Vercel env var wiring, known deploy gotchas
 ├── LICENSE
 ├── .gitignore
@@ -339,7 +380,7 @@ lore/
 - **github_client.py** — Fetches commits, pull requests, issues, and repository files.
 - **processor.py** — Cleans, chunks, and formats repository data.
 - **local_memory.py** — Fast vector-based memory store using `fastembed`, no LLM calls.
-- **cognee_service.py** — Configures Cognee per-request based on `llm_provider` (Gemini/Groq/Ollama), and wraps `add()`/`cognify()`/`recall()`/`improve()`/`forget()`. See `COGNEE.md` for the full call-site map, pros/cons, and the issues (rate limits, Ollama) hit while building it. See `DEPLOYMENT.md` for how to actually get this deployed to Render + Vercel without the env-var gotchas that bit us.
+- **cognee_service.py** — Configures Cognee per-request based on `llm_provider` (Gemini/Groq/Ollama), and wraps `add()`/`cognify()`/`recall()`/`improve()`/`forget()`. Also holds the opt-in Cognee Cloud connection (`_maybe_connect_cloud()`) — additive, self-verifying, never enabled by default. See `COGNEE.md` for the full call-site map, pros/cons, and the issues (rate limits, Ollama) hit while building it. See `COGNEECLOUD.md` for the Cloud wiring specifically. See `DEPLOYMENT.md` for how to actually get this deployed to Render + Vercel without the env-var gotchas that bit us.
 - **synthesis.py** — Uses Groq Llama 3.3 to generate cited answers from retrieved chunks.
 
 ### Frontend Highlights
