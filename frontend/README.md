@@ -27,7 +27,10 @@ frontend/
 │   │   └── MemoryPage.tsx   (+.module.css)
 │   ├── components/
 │   │   ├── layout/                   # NavBar etc.
-│   │   └── ui/                        # shadcn/ui primitives (flat, generated)
+│   │   └── ui/
+│   │       ├── SpecBox.tsx             # Bordered "spec sheet" card, used across pages
+│   │       ├── ProviderSelect.tsx      # Custom glass dropdown (Gemini/Groq/Ollama), portal-rendered
+│   │       └── (shadcn/ui primitives, flat, generated)
 │   ├── api/
 │   │   └── client.ts                  # Backend API client (axios)
 │   ├── hooks/
@@ -60,7 +63,22 @@ npm run dev      # http://localhost:3000
 - `src/styles/head.css` (head `<link>`, SSR-safe) and `src/styles/global.css`
   (imported in `main.tsx`) are both intentional — the Lovable/TanStack Start
   scaffold loads design tokens via both the document head and the client
-  bundle so styles are present pre-hydration.
+  bundle so styles are present pre-hydration. `head.css` is what the live
+  app actually uses (`main.tsx`/`global.css` is a legacy entry point kept
+  for the old CRA-style scaffold and isn't part of the deployed build).
+- **Typography is a strict two-font system: Fraunces + Space Grotesk.**
+  `--font-mono` is kept as a CSS variable name for backwards compatibility
+  with existing `t-mono-*` utility classes, but it now points at Space
+  Grotesk, not a real monospace face — there is no third font anywhere in
+  the app. If you're adding a new component, use `t-display`/`t-heading`
+  (Fraunces) for anything that carries visual hierarchy, and `t-body`/
+  `t-mono-*`/`t-label` (Space Grotesk) for everything else.
+- `ProviderSelect` renders its open panel through a React portal to
+  `document.body`, positioned with `position: fixed` computed from the
+  trigger's bounding rect. This is required, not stylistic — `SpecBox` (the
+  card it lives in) uses `overflow: hidden` for its rounded corners, which
+  would otherwise clip the dropdown panel. If you build another popover/
+  dropdown inside a `SpecBox`, use the same portal pattern.
 - `routeTree.gen.ts` is regenerated automatically by the dev/build command;
   it's gitignored and should never be hand-edited.
 - `lib/ssr/` holds the two files only ever imported from `server.ts` /
